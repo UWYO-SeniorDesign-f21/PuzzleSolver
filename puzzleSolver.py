@@ -5,9 +5,12 @@ import time
 #num pieces in the puzzle
 numPieces = 24
 
-img = cv2.imread('puzzle1_2.jpg')
+img = cv2.imread('puzzle1_1.jpg')
 #mask based on a range of colors for the background
-img3 = cv2.inRange(img, np.array([0, 220, 80]), np.array([50, 255, 160]))
+img2 = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+cv2.imwrite('tmp4.jpg', img2)
+print(img2[4][4])
+img3 = cv2.inRange(img2, np.array([0, 200, 200]), np.array([50, 255, 255]))
 cv2.imwrite('tmp2.jpg', img3)
 
 #find contours in the mask
