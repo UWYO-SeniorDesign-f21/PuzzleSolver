@@ -5,6 +5,11 @@ from scipy import stats
 
 #num pieces in the puzzle
 numPieces = 24
+# increase for greater definition,, but will remove more color range
+hueRange = 3
+satRange = 60
+valRange = 60
+puzzle = 'puzzle1_1'
 
 def getPieces( img ):
     #mask based on a range of colors for the background
@@ -15,9 +20,12 @@ def getPieces( img ):
     bg = stats.mode(colors)[0][0]
 
     #make a mask based on the most common color
-    mins = bg - np.array([5, 100, 255])
-    maxs = bg + np.array([5, 100, 255])
+    mins = bg - np.array([hueRange, satRange, valRange])
+    maxs = bg + np.array([hueRange, satRange, valRange])
     img3 = cv2.inRange(img2, mins, maxs)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    img3 = cv2.dilate(img3, kernel, iterations = 2)
 
     #find contours in the mask
     contours, hierarchy = cv2.findContours(img3, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -37,8 +45,8 @@ def drawPieces( img, contours ):
     img3 = img & img2
     return img3
 
-img = cv2.imread('puzzle1_1.jpg')
+img = cv2.imread(f'{puzzle}.jpg')
 
 contours = getPieces(img)
 pieceImg = drawPieces(img, contours)
-cv2.imwrite('puzzle1_1Pieces.jpg', pieceImg)
+cv2.imwrite(f'{puzzle}Pieces.jpg', pieceImg)
