@@ -34,6 +34,7 @@ class PuzzlePieces:
         pieceImg = drawPieces(self.img, self.contours)
         cv2.imshow('img', cv2.resize(pieceImg, (pieceImg.shape[1]//2, pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
         cv2.waitKey()
+        return pieceImg
     
     def findCorners(self):
         if len(self.contours) == 0:
@@ -51,11 +52,29 @@ class PuzzlePieces:
         for i in range(len(self.corners)):
             corner = self.corners[i]    
             for j in range(len(corner)):
-                cv2.circle(pieceImg, (int(corner[j][0]), int(corner[j][1])), 4, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
-                cv2.line(pieceImg, (int(corner[j][0]), int(corner[j][1])), (int(corner[j-1][0]), int(corner[j-1][1])), 
+                cv2.circle(pieceImg, (int(corner[j][1]), int(corner[j][2])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+                cv2.line(pieceImg, (int(corner[j][1]), int(corner[j][2])), (int(corner[j-1][1]), int(corner[j-1][2])), 
                         (0,0,255), thickness=4)
         cv2.imshow('img', cv2.resize(pieceImg, (pieceImg.shape[1]//2, pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
-        cv2.waitKey(0)
+        cv2.waitKey()
+        return pieceImg
+
+    def findEdges(self):
+        if len(self.corners) == 0:
+            self.findCorners()
+        for piece in self.pieces:
+            piece.findEdges()
+
+    def showEdges(self):
+        if len(self.corners) == 0:
+            self.findCorners()
+        pieceImg = self.img.copy()
+        for piece in self.pieces:
+            piece.drawEdges(pieceImg)
+        cv2.imshow('img', cv2.resize(pieceImg, (pieceImg.shape[1]//2, pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
+        cv2.waitKey()
+        return pieceImg
+            
 
 def getPieces( img, numPieces, hueRange, satRange, valRange ):
     #mask based on a range of colors for the background
@@ -116,7 +135,7 @@ def closestDistPhi( phi1, phi2 ):
     return dist
 
 def cornerDetection(contours):
-    corners = np.empty((len(contours),4,2), dtype=np.int32)
+    corners = np.empty((len(contours),4,3), dtype=np.int32)
     for i in range(len(contours)):
         cnt = contours[i]
         center = np.mean(cnt[:,0], axis=0)
@@ -133,7 +152,7 @@ def cornerDetection(contours):
         diffRight = rho[peaks] - rho[(peaks+10) % len(rho)]
         diffRight[np.where(diffRight < 0)] = 0
         sharpness = diffLeft*diffRight
-        cornerPeaks = np.where(sharpness > 2)
+        cornerPeaks = np.where(sharpness > 0)
         sharpness = sharpness[cornerPeaks]
 
         peaks = peaks[cornerPeaks]
@@ -175,7 +194,8 @@ def cornerDetection(contours):
         
         cornerX = cnt[:,0,0][peaks]
         cornerY = cnt[:,0,1][peaks]
-
-        corners[i,:,0] = cornerX
-        corners[i,:,1] = cornerY
+        
+        corners[i,:,0] = peaks
+        corners[i,:,1] = cornerX
+        corners[i,:,2] = cornerY
     return corners
