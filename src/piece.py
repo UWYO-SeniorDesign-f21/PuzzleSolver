@@ -15,8 +15,7 @@ class Piece:
     def setCorners(self, corners):
         self.corners = corners
     def findEdges(self):
-        minLock = -30
-        maxLock = 30
+        epsilon = 30
         if len(self.corners) == 0 or len(self.contour) == 0:
             return
         for i in range(len(self.corners)):
@@ -34,15 +33,16 @@ class Piece:
             # distance from each contour point to the line between corners
             d = -np.cross(pnt2-pnt1,edgeContour-pnt1)/np.linalg.norm(pnt2-pnt1)
 
-            if np.max(d) > maxLock:
+            furthestPoint = np.max(abs(d))
+            if furthestPoint < epsilon:
+                self.edgeLockLabels.append('flat')
+                self.edgeLockLocs.append(np.argmin(d))
+            elif np.max(d) == furthestPoint:
                 self.edgeLockLabels.append('out')
                 self.edgeLockLocs.append(np.argmax(d))
-            elif np.min(d) < minLock:
+            elif np.min(d) == -furthestPoint:
                 self.edgeLockLabels.append('in')
                 self.edgeLockLocs.append(np.argmin(d))   
-            else:
-                self.edgeLockLabels.append('flat')
-                self.edgeLockLocs.append(len(edgeContour)//2)
 
             self.edges.append(d)
     

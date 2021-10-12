@@ -11,6 +11,7 @@ import piece
 class PuzzlePieces:
     def __init__(self, puzzleName, numPieces, hueRange, satRange, valRange):
         self.pieces = []
+        self.puzzleName = puzzleName
         filename = f'../input/{puzzleName}.jpg'
         img = cv2.imread(filename)
         self.img = img
@@ -24,15 +25,16 @@ class PuzzlePieces:
         self.contours = getPieces(self.img, self.numPieces, self.hueRange, self.satRange, self.valRange)
         
         for i in range(len(self.contours)):
-            pieceBees = piece.Piece(i)
-            pieceBees.setContour(self.contours[i])
-            self.pieces.append(pieceBees)
+            piece2 = piece.Piece(i)
+            piece2.setContour(self.contours[i])
+            self.pieces.append(piece2)
     
     def showPieces(self):
         if len(self.contours) == 0:
             self.findContours()
         pieceImg = drawPieces(self.img, self.contours)
-        cv2.imshow('img', cv2.resize(pieceImg, (pieceImg.shape[1]//2, pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
+        cv2.imshow(f'showPieces {self.puzzleName}',  cv2.rotate(cv2.resize(pieceImg, (pieceImg.shape[1]//4, 
+                    pieceImg.shape[0]//4), interpolation = cv2.INTER_AREA), cv2.ROTATE_90_CLOCKWISE))
         cv2.waitKey()
         return pieceImg
     
@@ -55,7 +57,8 @@ class PuzzlePieces:
                 cv2.circle(pieceImg, (int(corner[j][1]), int(corner[j][2])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
                 cv2.line(pieceImg, (int(corner[j][1]), int(corner[j][2])), (int(corner[j-1][1]), int(corner[j-1][2])), 
                         (0,0,255), thickness=4)
-        cv2.imshow('img', cv2.resize(pieceImg, (pieceImg.shape[1]//2, pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
+        cv2.imshow(f'showCorners {self.puzzleName}',  cv2.rotate(cv2.resize(pieceImg, (pieceImg.shape[1]//4, 
+                    pieceImg.shape[0]//4), interpolation = cv2.INTER_AREA), cv2.ROTATE_90_CLOCKWISE))
         cv2.waitKey()
         return pieceImg
 
@@ -71,14 +74,19 @@ class PuzzlePieces:
         pieceImg = self.img.copy()
         for piece in self.pieces:
             piece.drawEdges(pieceImg)
-        cv2.imshow('img', cv2.resize(pieceImg, (pieceImg.shape[1]//2, pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
+        cv2.imshow(f'showEdges {self.puzzleName}',  cv2.rotate(cv2.resize(pieceImg, (pieceImg.shape[1]//4, 
+                    pieceImg.shape[0]//4), interpolation = cv2.INTER_AREA), cv2.ROTATE_90_CLOCKWISE))
         cv2.waitKey()
         return pieceImg
             
 
 def getPieces( img, numPieces, hueRange, satRange, valRange ):
     #mask based on a range of colors for the background
+    #img2 = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     img2 = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img2, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
+    #                    cv2.ROTATE_90_CLOCKWISE))
+    cv2.waitKey()
     #reshape image into just 3 by num pixels list of the colors
     colors = img2.reshape(-1, 3)
     #find the most common color in that list
@@ -88,18 +96,24 @@ def getPieces( img, numPieces, hueRange, satRange, valRange ):
     mins = bg - np.array([hueRange, satRange, valRange])
     maxs = bg + np.array([hueRange, satRange, valRange])
     img3 = cv2.inRange(img2, mins, maxs)
-
+    #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img3, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
+    #                    cv2.ROTATE_90_CLOCKWISE))
+    cv2.waitKey()
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    img3 = cv2.dilate(img3, kernel, iterations = 2)
+    #img3 = cv2.erode(img3, kernel, iterations=2)
+    img3 = cv2.dilate(img3, kernel, iterations=2)
 
     #find contours in the mask
     contours, hierarchy = cv2.findContours(img3, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
+    cv2.drawContours(img, contours, -1, (255,0,0), thickness=10)
+    #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
+    #                    cv2.ROTATE_90_CLOCKWISE))
+    cv2.waitKey()
     #sort the contours by area, choose the biggest ones for the pieces
     # note that the largest contour is just the entire board
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
     contours = contours[1:numPieces+1]
-
+    
     return contours
 
 def drawPieces( img, contours ):
@@ -146,16 +160,34 @@ def cornerDetection(contours):
 
         rho, phi = cart2pol(cntCen[:,0,0], cntCen[:,0,1])
         peaks, _ = find_peaks(rho, distance=50)
+        
+        if (peaks[0] + len(rho)) - peaks[-1] <= 50:
+            if rho[peaks[0]] < rho[peaks[-1]]:
+                peaks = peaks[1:]
+            else:
+                peaks = peaks[:-1]
 
-        diffLeft = rho[peaks] - rho[(peaks-10) % len(rho)]
+        rhoMax = np.max(rho[peaks])
+
+        diffLeft = rhoMax - rhoMax * rho[(peaks-30) % len(rho)] / rho[peaks]
         diffLeft[np.where(diffLeft < 0)] = 0
-        diffRight = rho[peaks] - rho[(peaks+10) % len(rho)]
+        diffRight = rhoMax - rhoMax * rho[(peaks+30) % len(rho)] / rho[peaks]
         diffRight[np.where(diffRight < 0)] = 0
         sharpness = diffLeft*diffRight
+        
+        #for smaller puzzle pieces
+        #cornerPeaks = np.argsort(sharpness)[-4:]
+        
+        #for bigger puzzle pieces
         cornerPeaks = np.where(sharpness > 0)
+
         sharpness = sharpness[cornerPeaks]
 
         peaks = peaks[cornerPeaks]
+                
+        #plt.plot(rho, '.')
+        #plt.plot(peaks, rho[peaks], 'x', c='orange')
+        #plt.show()
 
         order = np.argsort([phi[peaks]])
 
@@ -164,6 +196,10 @@ def cornerDetection(contours):
         sharpnessSorted = np.flip(np.argsort(sharpness))
 
         peaks2 = np.empty((0,), dtype=np.int32)
+        
+        '''
+        for smaller puzzles
+        '''
         start = sharpnessSorted[0]
         peaks2 = np.append(peaks2, start)
         nextCorner = start
@@ -182,13 +218,16 @@ def cornerDetection(contours):
                 nextCorner = indexes[np.argmin(abs(dists - math.pi/2))]
                 peaks2 = np.append(peaks2, nextCorner)
             elif len(dists) > 0:
-                nextCorner = nextCorner + 1
+                nextCorner = (nextCorner + 1) % len(peaks)
                 peaks2 = np.append(peaks2, nextCorner)
             else:
                 break
             if len(peaks2) >= 4:
                 break
         peaks = peaks[peaks2]
+        '''
+        end section
+        '''
         order = np.argsort([phi[peaks]])
         peaks = peaks[order][0]
         
