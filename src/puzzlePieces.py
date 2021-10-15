@@ -5,6 +5,7 @@ import math
 from scipy import stats
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, peak_widths
+import random
 
 import piece
 
@@ -25,7 +26,7 @@ class PuzzlePieces:
         self.contours = getPieces(self.img, self.numPieces, self.hueRange, self.satRange, self.valRange)
         
         for i in range(len(self.contours)):
-            piece2 = piece.Piece(i)
+            piece2 = piece.Piece(i, self.img)
             piece2.setContour(self.contours[i])
             self.pieces.append(piece2)
     
@@ -78,7 +79,51 @@ class PuzzlePieces:
                     pieceImg.shape[0]//4), interpolation = cv2.INTER_AREA), cv2.ROTATE_90_CLOCKWISE))
         cv2.waitKey()
         return pieceImg
-            
+
+    def findMinDistEdge(self, without):
+        minDist = float('inf')
+        minDistEdge1 = None
+        minDistPiece1 = None
+        minDistEdge2 = None
+        minDistPiece2 = None
+        pieceImg = self.img.copy()
+        for i in range(len(self.pieces)):
+            edgeIndexes = np.array(range(4))
+            withoutEdges = without[:,1][np.where(without[:,0] == i)]
+            edgeIndexes = np.setdiff1d(edgeIndexes, withoutEdges)
+            for j in edgeIndexes:
+                piece1 = self.pieces[i]
+                edge, piece, dist = piece1.findClosestEdge(j, self.pieces, without)
+                if piece == None:
+                    continue
+                piece2 = self.pieces[piece]
+                if dist < minDist:
+                    minDist = dist
+                    minDistEdge1 = j
+                    minDistPiece1 = i
+                    minDistEdge2 = edge
+                    minDistPiece2 = piece
+        return minDistEdge1, minDistPiece1, minDistEdge2, minDistPiece2, minDist
+
+    def puzzleSolver(self):
+        pieceImg = np.zeros_like(self.img)
+        without = np.array([[-1,-1]])
+        while True:
+            edge1, piece1, edge2, piece2, dist = self.findMinDistEdge(without)
+            if edge1 == None or piece1 == None:
+                cv2.waitKey()
+                break
+
+            without = np.vstack((without, np.array([piece1, edge1])))
+            without = np.vstack((without, np.array([piece2, edge2])))
+
+            self.pieces[piece1].drawClosestEdge(pieceImg, edge1, self.pieces[piece2], edge2)
+            cv2.imshow(f'closestEdge {self.puzzleName}',  cv2.rotate(cv2.resize(pieceImg, (pieceImg.shape[1]//4, 
+                pieceImg.shape[0]//4), interpolation = cv2.INTER_AREA), cv2.ROTATE_90_CLOCKWISE))
+            k = cv2.waitKey(100)&0xff
+            if k == 27:
+                break
+        return pieceImg
 
 def getPieces( img, numPieces, hueRange, satRange, valRange ):
     #mask based on a range of colors for the background
@@ -105,7 +150,6 @@ def getPieces( img, numPieces, hueRange, satRange, valRange ):
 
     #find contours in the mask
     contours, hierarchy = cv2.findContours(img3, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(img, contours, -1, (255,0,0), thickness=10)
     #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
     #                    cv2.ROTATE_90_CLOCKWISE))
     cv2.waitKey()
