@@ -22,6 +22,8 @@ class PuzzlePieces:
         self.hueRange = hueRange
         self.satRange = satRange
         self.valRange = valRange
+        self.solution = None
+        self.solutionEdges = None
     def findContours(self):
         self.contours = getPieces(self.img, self.numPieces, self.hueRange, self.satRange, self.valRange)
         
@@ -80,19 +82,23 @@ class PuzzlePieces:
         cv2.waitKey()
         return pieceImg
 
-    def findMinDistEdge(self, without):
+    def findMinDistEdge(self, puzzleArr, without):
         minDist = float('inf')
         minDistEdge1 = None
         minDistPiece1 = None
         minDistEdge2 = None
         minDistPiece2 = None
         pieceImg = self.img.copy()
-        for i in range(len(self.pieces)):
+
+        puzzleArrPieces = puzzleArr.flatten()
+        puzzleArrPieces = puzzleArrPieces[np.where(puzzleArrPieces != None)]
+
+        for i in range(len(puzzleArrPieces)):
+            piece1 = puzzleArrPieces[i]
             edgeIndexes = np.array(range(4))
-            withoutEdges = without[:,1][np.where(without[:,0] == i)]
+            withoutEdges = without[:,1][np.where(without[:,0] == piece1.number)]
             edgeIndexes = np.setdiff1d(edgeIndexes, withoutEdges)
             for j in edgeIndexes:
-                piece1 = self.pieces[i]
                 edge, piece, dist = piece1.findClosestEdge(j, self.pieces, without)
                 if piece == None:
                     continue
@@ -100,29 +106,130 @@ class PuzzlePieces:
                 if dist < minDist:
                     minDist = dist
                     minDistEdge1 = j
-                    minDistPiece1 = i
+                    minDistPiece1 = piece1
                     minDistEdge2 = edge
-                    minDistPiece2 = piece
+                    minDistPiece2 = piece2
         return minDistEdge1, minDistPiece1, minDistEdge2, minDistPiece2, minDist
-
+    
     def puzzleSolver(self):
         pieceImg = np.zeros_like(self.img)
+
+        cornerPieces = []
+        for piece in self.pieces:
+            if piece.pieceLabel == 'corner':
+                cornerPieces.append(piece)
+        puzzleArr = np.array([[cornerPieces[0]]])
+
+        cLockLabels = cornerPieces[0].edgeLockLabels
+        firstEdge = 0
+        for i in range(len(cLockLabels)):
+            if cLockLabels[i] == 'flat' and cLockLabels[i-1] == 'flat':
+                firstEdge = (i-1)%4
+
+        # sorted edges, with up being the second edge on the corner, 
+        # then going clockwise from there
+        edgeArr = np.array([[[(firstEdge+1)%4, (firstEdge+2)%4, (firstEdge+3)%4, firstEdge]]])
+
         without = np.array([[-1,-1]])
+        
         while True:
-            edge1, piece1, edge2, piece2, dist = self.findMinDistEdge(without)
+            edge1, piece1, edge2, piece2, dist = self.findMinDistEdge(puzzleArr, without)
+
             if edge1 == None or piece1 == None:
                 cv2.waitKey()
                 break
 
-            without = np.vstack((without, np.array([piece1, edge1])))
-            without = np.vstack((without, np.array([piece2, edge2])))
+            without = np.vstack((without, np.array([piece1.number, edge1])))
+            without = np.vstack((without, np.array([piece2.number, edge2])))
 
-            self.pieces[piece1].drawClosestEdge(pieceImg, edge1, self.pieces[piece2], edge2)
+            pieceLocation = np.where(puzzleArr == piece1)
+            edges = edgeArr[pieceLocation][0]
+            edgeLocation = np.where(edges == edge1)[0][0]
+            if edgeLocation == 1:
+                if pieceLocation[1][0] + 1 >= puzzleArr.shape[1]:
+                    # add a column
+                    newCol = np.empty_like(puzzleArr[:,0])
+                    newCol[:] = None
+                    puzzleArr = np.append(puzzleArr, newCol[:,np.newaxis], axis=1)
+                    
+                    newCol = np.empty_like(edgeArr[:,0])
+                    newCol[:] = [-1, -1, -1, -1]
+                    edgeArr = np.append(edgeArr, newCol[:,np.newaxis], axis=1)
+                edgeArr[pieceLocation[0][0], pieceLocation[1][0]+1] = [(edge2+1)%4, 
+                    (edge2+2)%4, (edge2+3)%4, edge2]
+                puzzleArr[pieceLocation[0][0],pieceLocation[1][0]+1] = piece2
+            elif edgeLocation == 2:
+                if pieceLocation[0][0] + 1 >= puzzleArr.shape[0]:
+                    # add a row
+                    newRow = np.empty_like(puzzleArr[0])
+                    newRow[:] = None
+                    puzzleArr = np.vstack([puzzleArr, newRow])
+
+                    newRow = np.empty_like(edgeArr[0])
+                    newRow[:] = [-1, -1, -1, -1]
+                    edgeArr = np.vstack((edgeArr, newRow[np.newaxis,:]))
+                puzzleArr[pieceLocation[0][0]+1][pieceLocation[1][0]] = piece2
+                edgeArr[pieceLocation[0][0]+1, pieceLocation[1][0]] = [edge2, 
+                    (edge2+1)%4, (edge2+2)%4, (edge2+3)%4]
+            elif edgeLocation == 0:
+                # if going up, the spot in the array is guaranteed to exist
+                puzzleArr[pieceLocation[0][0]-1][pieceLocation[1][0]] = piece2
+                edgeArr[pieceLocation[0][0]-1, pieceLocation[1][0]] = [(edge2 + 2)%4,
+                    (edge2+3)%4, edge2, (edge2+1)%4]
+            else:
+                # if going left, also guaranteed to exist
+                edgeArr[pieceLocation[0][0], pieceLocation[1][0]-1] = [(edge2-1)%4, 
+                    edge2, (edge2+1)%4, (edge2+2)%4]
+                puzzleArr[pieceLocation[0][0],pieceLocation[1][0]-1] = piece2
+
+            piece1.drawClosestEdge(pieceImg, edge1, piece2, edge2)
             cv2.imshow(f'closestEdge {self.puzzleName}',  cv2.rotate(cv2.resize(pieceImg, (pieceImg.shape[1]//4, 
                 pieceImg.shape[0]//4), interpolation = cv2.INTER_AREA), cv2.ROTATE_90_CLOCKWISE))
-            k = cv2.waitKey(100)&0xff
+            k = cv2.waitKey(1)&0xff
             if k == 27:
                 break
+        self.solution = puzzleArr
+        self.solutionEdges = edgeArr
+        return pieceImg
+
+    def showPuzzleSolution(self):
+        imgArray = [[[] for _ in range(len(self.solution[0]))] for _ in range(len(self.solution))]
+        maxWidth = 0
+        for i in range(len(self.solution)):
+            for j in range(len(self.solution[i])):
+                piece = self.solution[i][j]
+                edgeUp = self.solutionEdges[i][j][0]
+                imgArray[i][j] = piece.cropAndRotate(edgeUp)
+                if imgArray[i][j].shape[0] > maxWidth:
+                    maxWidth = imgArray[i][j].shape[0]
+        for i in range(len(self.solution)):
+            for j in range(len(self.solution[i])):
+                imgSize = imgArray[i][j].shape[0]
+                t = (maxWidth - imgSize) // 2
+                b = (maxWidth - imgSize) // 2
+                if t + b < maxWidth:
+                    t = t + 1
+                l = (maxWidth - imgSize) // 2
+                r = (maxWidth - imgSize) // 2
+                if l + r < maxWidth:
+                    l = l + 1
+                
+                imgArray[i][j] = cv2.copyMakeBorder(imgArray[i][j], t, b, l, r, cv2.BORDER_CONSTANT, (0,0,0))
+        pieceImg = None
+        imgRow = None
+        for i in range(len(self.solution)):
+            for j in range(len(self.solution[i])):
+                if j == 0:
+                    imgRow = imgArray[i][0].copy()
+                else:
+                    imgRow = np.hstack((imgRow, imgArray[i][j]))
+            if i == 0:
+                pieceImg = imgRow.copy()
+            else:
+                pieceImg = np.vstack((pieceImg, imgRow))
+        cv2.imshow('puzzleSolution', cv2.resize(pieceImg, (pieceImg.shape[1]//2, 
+                    pieceImg.shape[0]//2), interpolation = cv2.INTER_AREA))
+        cv2.waitKey(0)
         return pieceImg
 
 def getPieces( img, numPieces, hueRange, satRange, valRange ):

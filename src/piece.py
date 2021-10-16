@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import math
+import imutils
 
 class Piece:
     def __init__(self, number, img):
@@ -12,6 +14,7 @@ class Piece:
         self.edgeLockLabels = []
         self.edgeLockLocs = []
         self.edgeColors = []
+        self.pieceLabel = None
     def setContour(self, contour):
         self.contour = contour
     def setCorners(self, corners):
@@ -48,6 +51,13 @@ class Piece:
 
             self.edges.append(d)
             self.edgeColors.append(self.findEdgeColors(i))
+        numFlat = np.sum(np.array(self.edgeLockLabels) == 'flat')
+        if numFlat == 2:
+            self.pieceLabel = 'corner'
+        elif numFlat == 1:
+            self.pieceLabel = 'side'
+        else:
+            self.pieceLabel = 'middle'
     
     def drawEdges(self, img, edges=range(4)):
         if len(self.edgeContours) == 0:
@@ -66,7 +76,30 @@ class Piece:
             location = self.edgeContours[i][self.edgeLockLocs[i]][0]
             if self.edgeLockLabels[i] != 'flat':
                 cv2.circle(img, (int(location[0]), int(location[1])), 10, color2, thickness=-1, lineType=cv2.FILLED)
-    
+            center = np.mean(self.contour[:,0], axis=0).astype(int)
+            #cv2.putText(img, f'{self.number}', (center[0], center[1]), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 0, 0), 7, lineType=cv2.LINE_AA)
+
+    def cropAndRotate(self, edgeUp):
+        c1 = self.corners[(edgeUp - 1) % 4][1:]
+        c2 = self.corners[edgeUp][1:]
+        dx = c1[0] - c2[0]
+        dy = c1[1] - c2[1]
+        angle = math.degrees(math.atan(dy / dx))
+
+        (x,y), r = cv2.minEnclosingCircle(self.contour)
+        r = r + 10
+
+        img2 = np.zeros_like(self.img)
+        cv2.drawContours(img2, [self.contour], -1, (255,255,255), thickness=-1)
+        img2 = cv2.bitwise_and(self.img, img2)
+
+        img2 = img2[int(y) - int(r):int(y) + int(r), int(x) - int(r):int(x) + int(r)]
+
+        if( c2[0] < c1[0] ): # need to rotate more!
+            angle = angle + 180
+        img3 = imutils.rotate(img2, angle)
+        return img3
+
     def drawColorEdges(self, img, edges=range(4)):
         if len(self.edgeContours) == 0:
             self.find(edges)

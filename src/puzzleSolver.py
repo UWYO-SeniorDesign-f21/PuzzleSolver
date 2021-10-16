@@ -15,12 +15,15 @@ puzzleName = 'puzzle1_2'
 
 pieces = puzzlePieces.PuzzlePieces(puzzleName, numPieces, hueRange, satRange, valRange)
 pieces.findContours()
-#img1 = pieces.showPieces()
+img1 = pieces.showPieces()
 pieces.findCorners()
-#img2 = pieces.showCorners()
+img2 = pieces.showCorners()
 #cv2.imwrite(f'../{puzzleName}Corners.jpg', img2)
 pieces.findEdges()
 img3 = pieces.showEdges()
 #cv2.imwrite(f'../{puzzleName}Edges.jpg', img3)
+
 img4 = pieces.puzzleSolver()
+cv2.imwrite(f'../{puzzleName}PuzzleSolved.jpg', img4)
+img4 = pieces.showPuzzleSolution()
 cv2.imwrite(f'../{puzzleName}PuzzleSolved.jpg', img4)
