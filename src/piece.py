@@ -84,7 +84,10 @@ class Piece:
         c2 = self.corners[edgeUp][1:]
         dx = c1[0] - c2[0]
         dy = c1[1] - c2[1]
-        angle = math.degrees(math.atan(dy / dx))
+        if dx == 0:
+            angle = 90
+        else:
+            angle = math.degrees(math.atan(dy / dx))
 
         (x,y), r = cv2.minEnclosingCircle(self.contour)
         r = r + 10
@@ -95,7 +98,7 @@ class Piece:
 
         img2 = img2[int(y) - int(r):int(y) + int(r), int(x) - int(r):int(x) + int(r)]
 
-        if( c2[0] < c1[0] ): # need to rotate more!
+        if( c2[0] < c1[0] or (c2[0] == c1[0] and c2[1] < c1[1])): # need to rotate more!
             angle = angle + 180
         img3 = imutils.rotate(img2, angle)
         return img3
@@ -132,25 +135,6 @@ class Piece:
             colorEc[i] = colorSum // (end - start)
         return colorEc
 
-    def findClosestEdge(self, edge, pieces, without):
-        minDist = float('inf')
-        minDistEdge = None
-        minDistPiece = None
-        for i in range(len(pieces)):
-            if pieces[i] == self:
-                continue
-            piece2 = pieces[i]
-            edgeIndexes = np.array(range(4))
-            withoutEdges = without[:,1][np.where(without[:,0] == i)]
-            edgeIndexes = np.setdiff1d(edgeIndexes, withoutEdges)
-            for edge2 in edgeIndexes:
-                dist = self.compareEdge(edge, piece2, edge2)
-                if dist < minDist:
-                    minDist = dist
-                    minDistEdge = edge2
-                    minDistPiece = i
-        return minDistEdge, minDistPiece, minDist
-
     def drawClosestEdge(self, img, edge1, piece2, edge2):
         self.drawColorEdges(img, [edge1])
         piece2.drawColorEdges(img, [edge2])
@@ -162,17 +146,15 @@ class Piece:
         if self.edgeLockLabels[edge1] == 'flat' or piece2.edgeLockLabels[edge2] == 'flat':
             return float('inf')
         
-        badEdgeAddOn = 0
-        
         # putting edge pieces w/ edge pieces
         if self.edgeLockLabels[(edge1 + 1) % 4] == 'flat' and piece2.edgeLockLabels[(edge2 - 1)%4] != 'flat':
-            badEdgeAddOn = 10000
+            return float('inf')
         if self.edgeLockLabels[edge1 - 1] == 'flat' and piece2.edgeLockLabels[(edge2 + 1) % 4] != 'flat':
-            badEdgeAddOn = 10000
+            return float('inf')
         if self.edgeLockLabels[(edge1 + 1) % 4] != 'flat' and piece2.edgeLockLabels[edge2 - 1] == 'flat':
-            badEdgeAddOn = 10000
+            return float('inf')
         if self.edgeLockLabels[edge1 - 1] != 'flat' and piece2.edgeLockLabels[(edge2 + 1) % 4] == 'flat':
-            badEdgeAddOn = 10000
+            return float('inf')
 
         if len(self.edges[edge1]) <= len(piece2.edges[edge2]):
             ec1 = -self.edges[edge1]
@@ -201,5 +183,5 @@ class Piece:
         if minDist < float('inf'):
             minColorDist = np.sum(np.linalg.norm(eColor2[max(minI,1)-1:len(eColor1)+max(minI,1)-1] - eColor1))
 
-        return minDist + minColorDist/2 + badEdgeAddOn
+        return minDist + minColorDist
             
