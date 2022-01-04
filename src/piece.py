@@ -1,187 +1,175 @@
 import numpy as np
-import cv2
+from scipy.signal import find_peaks
 import math
 import imutils
+import cv2
 
+from edge import Edge
+
+'''
+The piece class contains all information about puzzle pieces.
+The image is the image containing the piece in it,
+the contour is the location of all the points around the edge of the piece
+the label is a value used to describe the piece
+the corners, edge objects, and type of the piece are all found.
+
+The subimage containing the piece, cropped and rotated appropriately can be found with the function
+getSubimage
+'''
 class Piece:
-    def __init__(self, number, img):
-        self.number = number
-        self.img = img
-        self.contour = []
-        self.corners = []
-        self.edges = []
-        self.edgeContours = []
-        self.edgeLockLabels = []
-        self.edgeLockLocs = []
-        self.edgeColors = []
-        self.pieceLabel = None
-    def setContour(self, contour):
+    def __init__(self, label, image, contour):
+        self.label = label
+        self.image = image
         self.contour = contour
-    def setCorners(self, corners):
-        self.corners = corners
-    def findEdges(self):
-        epsilon = 30
-        if len(self.corners) == 0 or len(self.contour) == 0:
-            return
-        for i in range(len(self.corners)):
-            index1 = self.corners[i-1][0]
-            pnt1 = self.corners[i-1][1:]
-            index2 = (self.corners[i][0] + 1) % len(self.contour)
-            pnt2 = self.corners[i][1:]
-            if index1 < index2:
-                edgeContour = self.contour[index1:index2]
-            else:
-                edgeContour = np.concatenate((self.contour[index1:], self.contour[:index2]))
+        self.corners = findCorners(self.contour)
+        self.edges = findEdges(self.contour, self.corners, self.image)
+        self.type = findType(self.edges)
 
-            self.edgeContours.append(edgeContour)
+    def getSubimage(self, edge_up, with_details=False):
+        image = self.image.copy()
+        h, w, _ = image.shape
 
-            # distance from each contour point to the line between corners
-            d = -np.cross(pnt2-pnt1,edgeContour-pnt1)/np.linalg.norm(pnt2-pnt1)
+        # get the corners on either end of the piece to be displayed on top
+        c1 = self.corners[edge_up - 1][1:]
+        c2 = self.corners[edge_up][1:]
 
-            furthestPoint = np.max(abs(d))
-            if furthestPoint < epsilon:
-                self.edgeLockLabels.append('flat')
-                self.edgeLockLocs.append(np.argmin(d))
-            elif np.max(d) == furthestPoint:
-                self.edgeLockLabels.append('out')
-                self.edgeLockLocs.append(np.argmax(d))
-            elif np.min(d) == -furthestPoint:
-                self.edgeLockLabels.append('in')
-                self.edgeLockLocs.append(np.argmin(d))   
+        # get the slope of the line to be on top
+        delta = c1 - c2
+        dx, dy = delta[0], delta[1]
 
-            self.edges.append(d)
-            self.edgeColors.append(self.findEdgeColors(i))
-        numFlat = np.sum(np.array(self.edgeLockLabels) == 'flat')
-        if numFlat == 2:
-            self.pieceLabel = 'corner'
-        elif numFlat == 1:
-            self.pieceLabel = 'side'
-        else:
-            self.pieceLabel = 'middle'
-    
-    def drawEdges(self, img, edges=range(4)):
-        if len(self.edgeContours) == 0:
-            self.find(edges)
-        for i in edges:
-            if self.edgeLockLabels[i] == 'in':
-                color = (255,0,0)
-                color2 = (255,0,200)
-            elif self.edgeLockLabels[i] == 'flat':
-                color = (255,0,255)
-                color2 = (255,100,255)
-            elif self.edgeLockLabels[i] == 'out':
-                color = (0,0,255)
-                color2 = (0,200,255)
-            cv2.drawContours(img, self.edgeContours[i], -1, color, thickness=3)
-            location = self.edgeContours[i][self.edgeLockLocs[i]][0]
-            if self.edgeLockLabels[i] != 'flat':
-                cv2.circle(img, (int(location[0]), int(location[1])), 10, color2, thickness=-1, lineType=cv2.FILLED)
-            center = np.mean(self.contour[:,0], axis=0).astype(int)
-            #cv2.putText(img, f'{self.number}', (center[0], center[1]), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 0, 0), 7, lineType=cv2.LINE_AA)
-
-    def cropAndRotate(self, edgeUp):
-        c1 = self.corners[(edgeUp - 1) % 4][1:]
-        c2 = self.corners[edgeUp][1:]
-        dx = c1[0] - c2[0]
-        dy = c1[1] - c2[1]
+        # if the line is vertical, rotate 90 degrees
         if dx == 0:
             angle = 90
-        else:
+        else: # otherwise, rotate arctan (change in y / change in x) degrees
             angle = math.degrees(math.atan(dy / dx))
 
+        # find a circle that encloses the piece in the image
         (x,y), r = cv2.minEnclosingCircle(self.contour)
         r = r + 10
 
-        img2 = np.zeros_like(self.img)
-        cv2.drawContours(img2, [self.contour], -1, (255,255,255), thickness=-1)
-        img2 = cv2.bitwise_and(self.img, img2)
+        # isolate the piece in the image
+        mask = np.zeros_like(image)
+        cv2.drawContours(mask, [self.contour], -1, (255,255,255), thickness=-1)
+        image_piece_isolated = cv2.bitwise_and(mask, image)
 
-        img2 = img2[int(y) - int(r):int(y) + int(r), int(x) - int(r):int(x) + int(r)]
+        if with_details:
+            for i, corner in enumerate(self.corners):
+                prev = self.corners[i-1]
+                cv2.circle(image_piece_isolated, (int(corner[1]), int(corner[2])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+                cv2.line(image_piece_isolated, (int(corner[1]), int(corner[2])), (int(prev[1]), int(prev[2])), 
+                        (0,255,0), thickness=1)
 
+            for i, edge in enumerate(self.edges):
+                if edge.label == 'flat':
+                    color = (255,0,255)
+                elif edge.label == 'inner':
+                    color = (255,0,0)
+                else:
+                    color = (0,0,255)
+
+                cv2.drawContours(image_piece_isolated, edge.contour, -1, color, thickness=5)
+
+        # crop to the circle
+        image_crop = image_piece_isolated[max(int(y) - int(r), 0):min(int(y) + int(r), h), 
+                                        max(int(x) - int(r), 0):min(int(x) + int(r), w)]
+
+        # if the intended edge will actually be on the bottom
         if( c2[0] < c1[0] or (c2[0] == c1[0] and c2[1] < c1[1])): # need to rotate more!
-            angle = angle + 180
-        img3 = imutils.rotate(img2, angle)
-        return img3
+            angle = angle + 180 # flip 180 degrees
+        final_image = imutils.rotate(image_crop, angle) # rotate the image
 
-    def drawColorEdges(self, img, edges=range(4)):
-        if len(self.edgeContours) == 0:
-            self.find(edges)
-        for i in edges:
-            for j in range(1, len(self.edgeContours[i])-2):
-                if j % 10 == 0:
-                    cv2.circle(img, (self.edgeContours[i][j][0][0], self.edgeContours[i][j][0][1]), 10,
-                        self.edgeColors[i][j], thickness=-1, lineType=cv2.FILLED)
+        return final_image
 
-    def findEdgeColors(self, edge):
-        start, end = 5,10
-        ec = self.edgeContours[edge]
-        # want line perpindicular to contour at every point
-        # then want average on that line for some pixels of color
-        pPrev = ec[0:-2,0]
-        pCurr = ec[1:-1,0]
-        pNext = ec[2:,0]
-        ecPerp = np.empty_like(pPrev)
-        for i in range(len(pPrev)):
-            dx = -pNext[i,0] + pPrev[i,0]
-            dy = -pNext[i,1] + pPrev[i,1]
-            ecPerp[i] = [dy, -dx]
-        ecPerp = ecPerp / np.linalg.norm(ecPerp, axis=1)[:,np.newaxis]
-        colorEc = np.zeros((len(ecPerp), 3))
-        for i in range(len(ecPerp)):
-            colorSum = np.zeros((3,), dtype=int)
-            for j in range(start, end):
-                pt = (pCurr[i] + j*ecPerp[i]).astype(int)
-                colorSum += self.img[pt[1], pt[0], :]
-            colorEc[i] = colorSum // (end - start)
-        return colorEc
 
-    def drawClosestEdge(self, img, edge1, piece2, edge2):
-        self.drawColorEdges(img, [edge1])
-        piece2.drawColorEdges(img, [edge2])
-        loc1 = self.edgeContours[edge1][self.edgeLockLocs[edge1]][0]
-        loc2 = piece2.edgeContours[edge2][piece2.edgeLockLocs[edge2]][0]
-        cv2.line(img, (int(loc1[0]), int(loc1[1])), (int(loc2[0]), int(loc2[1])), (0,255,0), 6)
-    
-    def compareEdge(self, edge1, piece2, edge2):
-        if self.edgeLockLabels[edge1] == 'flat' or piece2.edgeLockLabels[edge2] == 'flat':
-            return float('inf')
-        
-        # putting edge pieces w/ edge pieces
-        if self.edgeLockLabels[(edge1 + 1) % 4] == 'flat' and piece2.edgeLockLabels[(edge2 - 1)%4] != 'flat':
-            return float('inf')
-        if self.edgeLockLabels[edge1 - 1] == 'flat' and piece2.edgeLockLabels[(edge2 + 1) % 4] != 'flat':
-            return float('inf')
-        if self.edgeLockLabels[(edge1 + 1) % 4] != 'flat' and piece2.edgeLockLabels[edge2 - 1] == 'flat':
-            return float('inf')
-        if self.edgeLockLabels[edge1 - 1] != 'flat' and piece2.edgeLockLabels[(edge2 + 1) % 4] == 'flat':
-            return float('inf')
+def findCorners(contour):
+    corners = np.empty((4,3), dtype=np.int)
 
-        if len(self.edges[edge1]) <= len(piece2.edges[edge2]):
-            ec1 = -self.edges[edge1]
-            eColor1 = self.edgeColors[edge1]
-            ec2 = np.flip(piece2.edges[edge2])
-            eColor2 = np.flip(piece2.edgeColors[edge2], axis=0)
+    center = np.mean(contour[:,0], axis=0)
+    centered_contour = contour - center
+
+    rho, phi = cart2pol(centered_contour[:,0,0], centered_contour[:,0,1])
+    peaks, _ = find_peaks(rho, distance=50)
+
+    # delete potential duplicate peaks on the extreme ends (as 360 degrees is equal to 0 degrees)
+    if (peaks[0] + len(rho) - peaks[-1] <= 50):
+        if rho[peaks[0]] < rho[peaks[-1]]:
+            peaks = peaks[1:]
         else:
-            ec2 = -self.edges[edge1]
-            eColor2 = self.edgeColors[edge1]
-            ec1 = np.flip(piece2.edges[edge2])
-            eColor1 = np.flip(piece2.edgeColors[edge2], axis=0)
+            peaks = peaks[:-1]
+    
+    # peak with most extreme value
+    rho_max = np.max(rho[peaks])
 
-        minDist = float('inf')
-        minColorDist = float('inf')
-        minI = 0
+    # find the differences between the peak height and the points on either side
+    # normalize so that the peak height is treated to be the same as rho_max
+    # remove peaks that are not higher than the points on the left and right
+    diff_left = rho_max - rho_max * rho[(peaks-30) % len(rho)] / rho[peaks]
+    diff_left[np.where(diff_left < 0)] = 0
+    diff_right = rho_max - rho_max * rho[(peaks+30) % len(rho)] / rho[peaks]
+    diff_right[np.where(diff_right < 0)] = 0
 
-        if len(ec2) == len(ec1):
-            minDist = np.sum(abs(ec2 - ec1))
-        else:  
-            for i in range(len(ec2) - len(ec1)):
-                dist = np.sum(abs(ec2[i:len(ec1) + i] - ec1))
-                dist += (len(ec2) - len(ec1))**2
-                if dist < minDist:
-                    minDist = dist
-                    minI = i
-        if minDist < float('inf'):
-            minColorDist = np.sum(np.linalg.norm(eColor2[max(minI,1)-1:len(eColor1)+max(minI,1)-1] - eColor1))
+    # find a metric for sharpness by multiplying these values
+    sharpness = diff_left * diff_right
 
-        return minDist + minColorDist
-            
+    # find the indeces of the four sharpest peaks, treat as corners
+    corner_peaks = np.argsort(sharpness)[-4:]
+
+    # reduce the peaks to be just the corners
+    sharpness = sharpness[corner_peaks]
+    peaks = peaks[corner_peaks]
+
+    # sort in increasing order based on phi (clockwise)
+    order = np.argsort([phi[peaks]])
+    peaks = peaks[order][0]
+    
+    # find the coordinates of the corners
+    corners_x = contour[:,0,0][peaks]
+    corners_y = contour[:,0,1][peaks]
+    
+    # store in an array, return
+    corners[:,0] = peaks
+    corners[:,1] = corners_x
+    corners[:,2] = corners_y
+
+    return corners
+
+def findEdges(contour, corners, image):
+    # init edges to empty
+    edges = []
+
+    # for each set of corners next to eachother
+    for i in range(len(corners)):
+        # get the corner positions in the contour
+        c1_pos = corners[i-1][0]
+        c2_pos = corners[i][0]
+        # add a new edge which contains the contour between these two positions
+        if c2_pos < c1_pos:
+            new_edge = Edge(i, image, np.concatenate((contour[c1_pos:], contour[:c2_pos])))
+        else:
+            new_edge = Edge(0, image, contour[c1_pos:c2_pos])
+        edges.append(new_edge)
+    
+    return edges
+
+def findType(edges):
+    # get the number of flat edges on the piece
+    num_flat = 0
+    for edge in edges:
+        if edge.label == 'flat':
+            num_flat += 1
+
+    # label appropriately
+    if num_flat == 0:
+        piece_type = 'middle'
+    elif num_flat == 1:
+        piece_type = 'side'
+    else:
+        piece_type = 'corner'
+
+    return piece_type
+
+# convert from cartesian to polar coordinates, used in findCorners
+def cart2pol(x, y):
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return rho, phi

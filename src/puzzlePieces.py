@@ -26,12 +26,14 @@ class PuzzlePieces:
         self.solutionEdges = None
         self.rows = 6
         self.cols = 4
+
     def findContours(self):
         self.contours = getPieces(self.img, self.numPieces, self.hueRange, self.satRange, self.valRange)
         
         for i in range(len(self.contours)):
             piece2 = piece.Piece(i, self.img)
             piece2.setContour(self.contours[i])
+            print(piece2.contour.shape)
             self.pieces.append(piece2)
     
     def showPieces(self):
@@ -287,7 +289,7 @@ def getPieces( img, numPieces, hueRange, satRange, valRange ):
     img2 = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img2, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
     #                    cv2.ROTATE_90_CLOCKWISE))
-    cv2.waitKey()
+    #cv2.waitKey()
     #reshape image into just 3 by num pixels list of the colors
     colors = img2.reshape(-1, 3)
     #find the most common color in that list
@@ -299,8 +301,8 @@ def getPieces( img, numPieces, hueRange, satRange, valRange ):
     img3 = cv2.inRange(img2, mins, maxs)
     #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img3, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
     #                    cv2.ROTATE_90_CLOCKWISE))
-    cv2.waitKey()
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    #cv2.waitKey()
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
     #img3 = cv2.erode(img3, kernel, iterations=2)
     img3 = cv2.dilate(img3, kernel, iterations=2)
 
@@ -308,7 +310,7 @@ def getPieces( img, numPieces, hueRange, satRange, valRange ):
     contours, hierarchy = cv2.findContours(img3, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     #cv2.imshow('hsv',  cv2.rotate(cv2.resize(img, (img.shape[1]//4, img.shape[0]//4), interpolation = cv2.INTER_AREA),
     #                    cv2.ROTATE_90_CLOCKWISE))
-    cv2.waitKey()
+    #cv2.waitKey()
     #sort the contours by area, choose the biggest ones for the pieces
     # note that the largest contour is just the entire board
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
