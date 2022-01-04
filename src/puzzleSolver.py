@@ -1,4 +1,4 @@
-from solutionMiddle import Solution
+from solution import Solution
 from pieceCollection import PieceCollection
 import random
 import cv2

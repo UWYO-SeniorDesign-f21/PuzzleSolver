@@ -13,66 +13,115 @@ class Solution:
         self.score = 0
         self.dist_dict = dist_dict
         self.buddy_dict = buddy_dict
+        self.edge_set = set()
 
-    def crossover(self, other_solution, randomize=False):
-        new_solution = Solution(self.pieces, self.solution_dimensions, self.dist_dict)
-        # want a kernel of available spots to go
+    def crossover(self, other_solution):
+        new_solution = Solution(self.pieces, self.solution_dimensions, self.dist_dict, self.buddy_dict)
 
         kernel = set()
+        possible_edges = set()
+        piece_dict = {}
+
         available_pieces = set([piece for piece in self.pieces.pieces if piece.type == 'middle'])
 
-        # pick a piece to begin the process from
         init_piece = random.choice(tuple(available_pieces))
+
+        piece_dict[init_piece] = (0, 0, 0)
         available_pieces.remove(init_piece)
+        new_solution.position_dict[(0,0)] = init_piece, 0
 
-        new_solution.position_dict[(0,0)] = (init_piece, 0)
+        for piece in available_pieces:
+            for edge1 in range(4):
+                for edge2 in range(4):
+                    possible_edges.add((init_piece, edge1, piece, edge2))
 
-        for pos in [(1,0), (-1,0), (0,1), (0,-1)]:
-            kernel.add(pos)
+        shared_edges = self.edge_set.intersection(other_solution.edge_set)
 
-        while len(available_pieces) > 0 and len(kernel) > 0:
-            if randomize:
-                tries = 500
-                position, piece, edge_up = None, None, None
-                while tries > 0:
-                    position = random.choice(tuple(kernel))
-                    piece = random.choice(tuple(available_pieces))
-                    edge_up = random.choice(range(4))
+        while(len(available_pieces) > 0 and len(possible_edges) > 0):
+            # print(len(available_pieces), len(possible_edges))
 
-                    if isValid(new_solution, position, piece, edge_up):
-                        break
-                    tries -= 1
-                if tries == 0:
-                    print('tried out :(')
-                    position, piece, edge_up = None, None, None
+            possible_shared_edges = shared_edges.intersection(possible_edges)
+            if len(possible_shared_edges) > 0:
+                piece1, edge1, piece2, edge2 = min(possible_shared_edges, key=lambda x:self.dist_dict[x])
             else:
-                position, piece, edge_up = getNextEdge(available_pieces, kernel, self, other_solution, new_solution)
+                buddies = [edge for edge in possible_edges if self.buddy_dict.get((edge[0], edge[1])) == (edge[2], edge[3])]
+                if len(buddies) > 0:
+                    piece1, edge1, piece2, edge2 = min(buddies, key=lambda x:self.dist_dict[x])
+                else:
+                    pieces = sorted(possible_edges, key=lambda x:self.dist_dict[x])[:5]
+                    piece1, edge1, piece2, edge2 = random.choices(pieces, weights=[0.5, 0.3, 0.2, 0.1, 0.1], k=1)[0]
 
-            if not piece:
-                break
+            piece1_x, piece1_y, piece1_edge_up = piece_dict[piece1]
 
-            new_solution.position_dict[position] = (piece, edge_up)
+            diff_edge_up = (edge1 - piece1_edge_up) % 4
 
-            piece_score = 0
-            directions = [(0, -1), (1, 0), (0, 1), (-1, 0)] # up right down left
-            for i, direction in enumerate(directions):
-                adj_position = (direction[0] + position[0], direction[1] + position[1])
-                value = new_solution.position_dict.get(adj_position)
-                if not value:
-                    kernel.add(adj_position)
+            if diff_edge_up == 0: # going up
+                edge_up = (edge2 + 2) % 4
+                pos_x = piece1_x
+                pos_y = piece1_y - 1
+            elif diff_edge_up == 1: # going right
+                edge_up = (edge2 + 1) % 4
+                pos_x = piece1_x + 1
+                pos_y = piece1_y
+            elif diff_edge_up == 2: # going down
+                edge_up = edge2
+                pos_x = piece1_x
+                pos_y = piece1_y + 1
+            else: # going left
+                edge_up = (edge2 - 1) % 4
+                pos_x = piece1_x - 1
+                pos_y = piece1_y
+
+            if not isValid(new_solution, (pos_x, pos_y)):
+                possible_edges.remove((piece1, edge1, piece2, edge2))
+                continue
+
+            piece_dict[piece2] = (pos_x, pos_y, edge_up)
+
+            edges_to_remove = {edge for edge in possible_edges if (edge[0], edge[1]) == (piece1, edge1) or edge[2] == piece2}
+            possible_edges = possible_edges.difference(edges_to_remove)
+            available_pieces.remove(piece2)
+
+            new_solution.position_dict[(pos_x, pos_y)] = (piece2, edge_up)
+            new_solution.score += piece1.edges[edge1].compare(piece2.edges[edge2])
+            new_solution.edge_set.add((piece1, edge1, piece2, edge2))
+
+            # for i, direction in enumerate(([0, -1], [1, 0], [0, 1], [-1, 0])):
+            #     pos_adj = (pos_x + direction[0], pos_y + direction[1])
+            #     value = new_solution.position_dict.get(pos_adj)
+            #     if not value:
+            #         continue
+            #     piece_adj, edge_up_adj = value
+            #     edge_piece2 = (edge_up + i) % 4
+            #     edge_adj = (edge_up_adj + i - 2) % 4
+            #     new_solution.score += piece2.edges[edge_piece2].compare(piece_adj.edges[edge_adj])
+
+
+
+            edges_to_add = set()
+            for old_edge in range(4):
+                if old_edge == edge2:
                     continue
-                adj_piece, adj_edge_up = value
-                edge1 = (edge_up + i) % 4
-                edge2 = (adj_edge_up + (i-2)) % 4
-                diff = piece.edges[edge1].compare(adj_piece.edges[edge2])
-                piece_score += diff
-                self.edge_dict[(piece, edge1)] = (adj_piece, edge2)
+                for new_piece in available_pieces:
+                    for new_edge in range(4):
+                        diff_edge_up = (old_edge - edge_up) % 4
+                        if diff_edge_up == 0:
+                            position = (pos_x, pos_y - 1)
+                        elif diff_edge_up == 1:
+                            position = (pos_x + 1, pos_y)
+                        elif diff_edge_up == 2:
+                            position = (pos_x, pos_y + 1)
+                        else:
+                            position = (pos_x - 1, pos_y)
+                        if isValid(new_solution, position):
+                            edges_to_add.add((piece2, old_edge, new_piece, new_edge))
+            possible_edges = possible_edges.union(edges_to_add)
 
-            new_solution.score += piece_score
-
-            kernel.remove(position)
-            available_pieces.remove(piece)
-
+        edges_to_add = set()
+        for piece1, edge1, piece2, edge2 in new_solution.edge_set:
+            edges_to_add.add((piece2, edge2, piece1, edge1))
+        new_solution.edge_set = new_solution.edge_set.union(edges_to_add)
+        
         return new_solution
 
     def randomize(self):
@@ -85,66 +134,27 @@ class Solution:
         random.shuffle(corner_pieces)
         random.shuffle(middle_pieces)
 
-
-
-        for x in range(self.solution_dimensions[0]):
-            for y in range(self.solution_dimensions[1]):
+        for x in range(self.solution_dimensions[0] - 2):
+            for y in range(self.solution_dimensions[1] - 2):
                 piece = None
                 edge_up = 0
-                if x == 0:
-                    if y == 0:
-                        piece = corner_pieces.pop()
-                        for i, edge in enumerate(piece.edges):
-                            if edge.label == 'flat' and piece.edges[i-1].label == 'flat':
-                                edge_up = i
-                    elif y == self.solution_dimensions[1] - 1:
-                        piece = corner_pieces.pop()
-                        for i, edge in enumerate(piece.edges):
-                            if edge.label == 'flat' and piece.edges[i-1].label == 'flat':
-                                edge_up = (i + 1) % 4
-                    else:
-                        piece = side_pieces.pop()
-                        for i, edge in enumerate(piece.edges):
-                            if edge.label == 'flat':
-                                edge_up = (i + 1) % 4
-                elif x == self.solution_dimensions[0] - 1:
-                    if y == 0:
-                        piece = corner_pieces.pop()
-                        for i, edge in enumerate(piece.edges):
-                            if edge.label == 'flat' and piece.edges[i-1].label == 'flat':
-                                edge_up = (i - 1) % 4
-                    elif y == self.solution_dimensions[1] - 1:
-                        piece = corner_pieces.pop()
-                        for i, edge in enumerate(piece.edges):
-                            if edge.label == 'flat' and piece.edges[i-1].label == 'flat':
-                                edge_up = (i + 2) % 4
-                    else:
-                        piece = side_pieces.pop()
-                        for i, edge in enumerate(piece.edges):
-                            if edge.label == 'flat':
-                                edge_up = (i - 1) % 4
-                elif y == 0:
-                    piece = side_pieces.pop()
-                    for i, edge in enumerate(piece.edges):
-                        if edge.label == 'flat':
-                            edge_up = i
-                elif y == self.solution_dimensions[1] - 1:
-                    piece = side_pieces.pop()
-                    for i, edge in enumerate(piece.edges):
-                        if edge.label == 'flat':
-                            edge_up = (i + 2) % 4
-                else:
-                    piece = middle_pieces.pop()
-                    edge_up = random.choice(range(4))
+                piece = middle_pieces.pop()
+                edge_up = random.choice(range(4))
 
                 self.position_dict[(x,y)] = piece, edge_up
                 if y > 0:
                     piece_above, above_edge_up = self.position_dict[(x, y-1)]
                     self.score += piece.edges[edge_up].compare(piece_above.edges[(above_edge_up + 2) % 4])
+                    self.edge_set.add((piece, edge_up, piece_above, (above_edge_up + 2) % 4))
                 if x > 0:
                     piece_left, left_edge_up = self.position_dict[(x-1, y)]
                     self.score += piece.edges[(edge_up - 1) % 4].compare(piece_left.edges[(left_edge_up + 1) % 4])
+                    self.edge_set.add((piece, (edge_up - 1) % 4, piece_left, (left_edge_up + 1) % 4))
 
+        edges_to_add = set()
+        for piece1, edge1, piece2, edge2 in self.edge_set:
+            edges_to_add.add((piece2, edge2, piece1, edge1))
+        self.edge_set = self.edge_set.union(edges_to_add)
 
 
     def getSolutionImage(self):
@@ -182,247 +192,25 @@ class Solution:
 
         return solution_image
 
-def isValid(new_solution, position, piece, edge_up):
-    directions = [(0, -1), (1, 0), (0, 1), (-1, 0)] # up right down left
-    for i, direction in enumerate(directions):
-        adj_position = (direction[0] + position[0], direction[1] + position[1])
-        value = new_solution.position_dict.get(adj_position)
-        if not value:
-            continue
-        adj_piece, adj_edge_up = value
-        
-        edge1_num = (edge_up + i) % 4
-        edge2_num = (adj_edge_up + (i-2)) % 4
+def isValid(new_solution, position):
 
-        edge1 = piece.edges[edge1_num]
-        edge2 = adj_piece.edges[edge2_num]
+    if new_solution.position_dict.get(position):
+        return False
 
-        if edge1.label == 'flat' or edge2.label == 'flat':
+    keys = new_solution.position_dict.keys()
+    min_x = min(keys, key=lambda x:x[0])[0]
+    min_y = min(keys, key=lambda x:x[1])[1]
+    max_x = max(keys, key=lambda x:x[0])[0]
+    max_y = max(keys, key=lambda x:x[1])[1]
+
+    width = max_x - min_x + 1
+    height = max_y - min_y + 1
+
+    if position[0] < min_x or position[0] > max_x:
+        if width + 1 > new_solution.solution_dimensions[0] - 2:
             return False
-
-        if (piece.edges[(edge1_num - 1) % 4].label == 'flat') != (adj_piece.edges[(edge2_num + 1) % 4].label == 'flat'):
+    if position[1] < min_y or position[1] > max_y:
+        if height + 1 > new_solution.solution_dimensions[1] - 2:
             return False
-
-        if (piece.edges[(edge1_num + 1) % 4].label == 'flat') != (adj_piece.edges[(edge2_num - 1) % 4].label == 'flat'):
-            return False
-
-    corner_keys = [key for key in new_solution.position_dict.keys() if new_solution.position_dict[key][0].type == 'corner']
-    side_keys = [key for key in new_solution.position_dict.keys() if new_solution.position_dict[key][0].type != 'middle']
-    middle_keys = [key for key in new_solution.position_dict.keys() if new_solution.position_dict[key][0].type == 'middle']
-
-    top_side_y = bottom_side_y = right_side_x = left_side_x = None
-    top_sides = bottom_sides = right_sides = left_sides = []
-    for key in side_keys:
-        side_piece, side_edge_up = new_solution.position_dict[key]
-
-        if side_piece.edges[side_edge_up].label == 'flat':
-            top_side_y = key[1]
-            if side_piece.type == 'side':
-                top_sides.append(key)
-
-        if side_piece.edges[(side_edge_up + 1) % 4].label == 'flat':
-            right_side_x = key[0]
-            if side_piece.type == 'side':
-                right_sides.append(key)
-
-        if side_piece.edges[(side_edge_up + 2) % 4].label == 'flat':
-            bottom_side_y = key[1]
-            if side_piece.type == 'side':
-                bottom_sides.append(key)
-
-        if side_piece.edges[(side_edge_up + 3) % 4].label == 'flat':
-            left_side_x = key[0]
-            if side_piece.type == 'side':
-                left_sides.append(key)
-
-    
-    if piece.edges[edge_up].label == 'flat':
-        if top_side_y:
-            if position[1] != top_side_y:
-                return False
-            max_top = max(top_sides + [position], key=lambda x:x[0])[0]
-            min_top = min(top_sides + [position], key=lambda x:x[0])[0]
-            if piece.type == 'side' and max_top - min_top > new_solution.solution_dimensions[0] - 2:
-                return False
-
-        if bottom_side_y and bottom_side_y - position[1] + 1 != new_solution.solution_dimensions[1]:
-            # print(f'top: {bottom_side_y - position[1]}')
-            return False
-
-    if piece.edges[(edge_up + 1) % 4].label == 'flat':
-        if right_side_x:
-            if position[0] != right_side_x:
-                return False
-            max_right = max(right_sides + [position], key=lambda x:x[1])[1]
-            min_right = min(right_sides + [position], key=lambda x:x[1])[1]
-            if piece.type == 'side' and max_right - min_right > new_solution.solution_dimensions[1] - 2:
-                return False
-        if left_side_x and position[0] - left_side_x + 1 != new_solution.solution_dimensions[0]:
-            # print(f'right: {position[0] - left_side_x}')
-            return False
-    if piece.edges[(edge_up + 2) % 4].label == 'flat':
-        if bottom_side_y:
-            if position[1] != bottom_side_y:
-                return False
-            max_bottom = max(bottom_sides + [position], key=lambda x:x[0])[0]
-            min_bottom = min(bottom_sides + [position], key=lambda x:x[0])[0]
-            if piece.type == 'side' and max_bottom - min_bottom > new_solution.solution_dimensions[0] - 2:
-                return False
-        if top_side_y and position[1] - top_side_y + 1 != new_solution.solution_dimensions[1]:
-            # print(f'bottom: {position[1] - top_side_y}')
-            return False
-    if piece.edges[(edge_up + 3) % 4].label == 'flat':
-        if left_side_x:
-            if position[0] != left_side_x:
-                return False
-            max_left = max(left_sides + [position], key=lambda x:x[1])[1]
-            min_left = min(left_sides + [position], key=lambda x:x[1])[1]
-            if piece.type == 'side' and max_left - min_left > new_solution.solution_dimensions[1] - 2:
-                return False
-
-        if right_side_x and right_side_x - position[0] + 1 != new_solution.solution_dimensions[0]:
-            # print(f'left: {right_side_x - position[0]}')
-            return False
-
-    if piece.type == 'middle':
-        if position[1] == top_side_y or position[1] == bottom_side_y or position[0] == right_side_x or position[0] == left_side_x:
-            return False
-        
-        if len(middle_keys) > 0:
-            min_x = min(middle_keys, key=lambda x:x[0])[0]
-            min_y = min(middle_keys, key=lambda x:x[1])[1]
-            max_x = max(middle_keys, key=lambda x:x[0])[0]
-            max_y = max(middle_keys, key=lambda x:x[1])[1]
-
-            width = max_x - min_x + 1
-            height = max_y - min_y + 1
-
-            if position[0] < min_x or position[0] > max_x:
-                if width + 1 > new_solution.solution_dimensions[0] - 2:
-                    return False
-            if position[1] < min_y or position[1] > max_y:
-                if height + 1 > new_solution.solution_dimensions[1] - 2:
-                    return False
-
-    if piece.type == 'side':
-        side_edges_rel = [i for i in range(4) if piece.edges[(edge_up + i) % 4].label == 'flat']
-        for key in new_solution.position_dict.keys():
-            other_piece, other_edge_up = new_solution.position_dict[key]
-            other_side_edges_rel = [i for i in range(4) if other_piece.edges[(other_edge_up + i) % 4].label == 'flat']
-            if key[0] == position[0]:
-                if (1 in side_edges_rel) != (1 in other_side_edges_rel):
-                    # print('1')
-                    return False
-                if (3 in side_edges_rel) != (3 in other_side_edges_rel):
-                    # print('3')
-                    return False
-            if key[1] == position[1]:
-                if (0 in side_edges_rel) != (0 in other_side_edges_rel):
-                    # print('0')
-                    return False
-                if (2 in side_edges_rel) != (2 in other_side_edges_rel):
-                    # print('2')
-                    return False
-
-
-
-        # min_x_tuple = min(new_solution.position_dict.keys(), key=lambda x:x[0])
-        # max_x_tuple = max(new_solution.position_dict.keys(), key=lambda x:x[0])
-
-        # min_y_tuple = min(new_solution.position_dict.keys(), key=lambda x:x[1])
-        # max_y_tuple = max(new_solution.position_dict.keys(), key=lambda x:x[1])
-        
-        # width = max_x_tuple[0] - min_x_tuple[0] + 1
-        # height = max_y_tuple[1] - min_y_tuple[1] + 1
-
-        # max_width, max_height = new_solution.solution_dimensions
-        
-        # if new_solution.position_dict[min_x_tuple][0].label == 'middle':
-        #     max_width -= 1
-        # if new_solution.position_dict[max_x_tuple][0].label == 'middle':
-        #     max_width -= 1
-        # if new_solution.position_dict[min_y_tuple][0].label == 'middle':
-        #     max_height -= 1
-        # if new_solution.position_dict[max_y_tuple][0].label == 'middle':
-        #     max_height -= 1
-
-        # print(width, height, max_width, max_height)
-
-        # if width > max_width:
-        #     return False
-        # if height > max_height:
-        #     return False
-
-        # if adj_position[0] < min_x_tuple[0] or adj_position[0] > max_x_tuple[0]:
-        #     if width + 1 > max_width:
-        #         return False
-        # if adj_position[1] < min_y_tuple[1] or adj_position[1] > max_y_tuple[1]:
-        #     if height + 1 > max_height:
-        #         return False
-
     return True
-
-def getNextEdge(available_pieces, kernel, curr_solution, other_solution, new_solution):
-    min_score = float('inf')
-    min_position = None
-    min_piece = None
-    min_edge_up = None
-
-    for position in kernel:
-        for piece in available_pieces:
-            for edge_up in range(4):
-                if not isValid(new_solution, position, piece, edge_up):
-                    continue
-                piece_score = 0
-                directions = [(0, -1), (1, 0), (0, 1), (-1, 0)] # up right down left
-                for i, direction in enumerate(directions):
-                    adj_position = (direction[0] + position[0], direction[1] + position[1])
-                    value = new_solution.position_dict.get(adj_position)
-                    if not value:
-                        continue
-                    adj_piece, adj_edge_up = value
-                    
-                    edge1 = (edge_up + i) % 4
-                    edge2 = (adj_edge_up + (i-2)) % 4
-
-                    # if curr_solution.edge_dict.get((piece, edge1)) == (adj_piece, edge2) and other_solution.edge_dict.get((piece, edge1)) == (adj_piece, edge2):
-                    #     return position, piece, edge_up
-
-                    diff = curr_solution.dist_dict[(piece, edge1, adj_piece, edge2)]
-                    piece_score += diff
-
-                if piece_score < min_score:
-                    min_score = piece_score
-                    min_piece = piece
-                    min_edge_up = edge_up
-                    min_position = position
-        
-    return min_position, min_piece, min_edge_up
-
-if __name__=='__main__':
-    collection = PieceCollection()
-    collection.addPieces('puzzle3_02.jpg', 20)
-    collection.addPieces('puzzle3_01.jpg', 20)
-    collection.addPieces('puzzle3_03.jpg', 20)
-    collection.addPieces('puzzle3_04.jpg', 20)
-    collection.addPieces('puzzle3_05.jpg', 20)
-
-
-    random_solution = Solution(collection, (10,10))
-    random_solution.randomize()
-
-    cv2.imwrite(f'random_solution.jpg', random_solution.getSolutionImage())
-
-    random_solution2 = Solution(collection, (10,10))
-    random_solution2.randomize()
-
-    cv2.imwrite(f'random_solution2.jpg', random_solution2.getSolutionImage())
-
-    crossover_hit = random_solution.crossover(random_solution2)
-
-    cv2.imwrite(f'crossover.jpg', crossover_hit.getSolutionImage())
-    
-
-
-
 
