@@ -82,7 +82,6 @@ class Piece:
 
 
 def findCorners(contour):
-    corners = np.empty((4,3), dtype=np.int)
 
     center = np.mean(contour[:,0], axis=0)
     centered_contour = contour - center
@@ -121,15 +120,17 @@ def findCorners(contour):
     # sort in increasing order based on phi (clockwise)
     order = np.argsort([phi[peaks]])
     peaks = peaks[order][0]
-    
+
+    corners = np.zeros((4,3), dtype=np.int)
+
     # find the coordinates of the corners
     corners_x = contour[:,0,0][peaks]
     corners_y = contour[:,0,1][peaks]
     
     # store in an array, return
-    corners[:,0] = peaks
-    corners[:,1] = corners_x
-    corners[:,2] = corners_y
+    corners[:len(peaks),0] = peaks
+    corners[:len(peaks),1] = corners_x
+    corners[:len(peaks),2] = corners_y
 
     return corners
 
@@ -147,7 +148,14 @@ def findEdges(contour, corners, image):
             new_edge = Edge(i, image, np.concatenate((contour[c1_pos:], contour[:c2_pos])))
         else:
             new_edge = Edge(0, image, contour[c1_pos:c2_pos])
+        if len(edges) > 0:
+            prev_edge = edges[-1]
+            prev_edge.setRightNeighbor(new_edge)
+            new_edge.setLeftNeighbor(prev_edge)
         edges.append(new_edge)
+
+    edges[0].setLeftNeighbor(edges[-1])
+    edges[-1].setRightNeighbor(edges[0])
     
     return edges
 
