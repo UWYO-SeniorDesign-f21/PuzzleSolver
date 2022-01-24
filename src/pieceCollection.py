@@ -31,7 +31,7 @@ class PieceCollection:
         #             int(rescale_factor*h)), interpolation = cv2.INTER_AREA)
         #     contours = getContours(image, num_pieces)
         #     print(avg_contour_size, avg_contour_size_prev)
-        labels = getLabels(contours)
+        labels = getLabels(contours, len(self.images) + 1)
         # adds piece objects for each pair to the array of pieces
         for i, contour in enumerate(contours):
             label = labels[i]
@@ -73,6 +73,43 @@ class PieceCollection:
 
         return pieces_image
 
+    def showPieceImages(self):
+        for i, image in enumerate(self.images):
+            pieces = [piece for piece in self.pieces if piece.image is image]
+            contours = [piece.contour for piece in pieces]
+            image_pieces = drawPieces(image, contours)
+            labels = [piece.label for piece in pieces]
+            image_pieces = showLabels(image_pieces, contours, labels)
+            h, w, _ = image_pieces.shape
+            cv2.imshow(f'image {i}', cv2.resize(image_pieces, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+            cv2.waitKey()
+
+
+def drawPieces( img, contours ):
+    #put the contour areas on a blank background as white
+    img2 = np.zeros_like(img)
+    cv2.drawContours(img2, contours, -1, (255,255,255), thickness=-1)
+    #take the white areas and include those areas from img
+    img3 = img & img2
+    return img3
+
+def showLabels( img, contours, labels ):
+    font_size = 2
+    font_thickness = 5
+    for i, contour in enumerate(contours):
+        center = np.mean(contour[:,0], axis=0).astype(int)
+        textsize = cv2.getTextSize(str(labels[i]), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_thickness)[0]
+
+        # get coords based on boundary
+        textX = center[0] - int(textsize[0] / 2)
+        textY = center[1] + int(textsize[1] / 2)
+
+        rect_pos1 = (textX - 20, center[1] - int(textsize[1] / 2) - 20)
+        rect_pos2 = (center[0] + int(textsize[0] / 2) + 20, textY + 20)
+        cv2.rectangle(img, rect_pos1, rect_pos2, (255,255,255), -1)
+        cv2.putText(img, str(labels[i]), (textX, textY), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0,0,0), font_thickness, 3)
+    return img
+
 
         
 def getContours(image, num_pieces):
@@ -113,37 +150,20 @@ def getContours(image, num_pieces):
     
     return contours
 
-def getLabels(contours):
-    return np.zeros((len(contours),), dtype=int)
-
+def getLabels(contours, image_num):
+    labels = []
+    for i, contour in enumerate(contours):
+        labels.append(f'{image_num}: {i}')
+    return labels
 if __name__ == '__main__':
     collection = PieceCollection()
-    collection.addPieces('puzzle3_02.jpg', 20)
-    collection.addPieces('puzzle3_01.jpg', 20)
-    collection.addPieces('puzzle3_03.jpg', 20)
-    collection.addPieces('puzzle3_04.jpg', 20)
-    collection.addPieces('puzzle3_05.jpg', 20)
+    collection.addPieces('StarWarsPuzzle01.png', 6)
+    collection.addPieces('StarWarsPuzzle02.png', 6)
+    collection.addPieces('StarWarsPuzzle03.png', 6)
+    collection.addPieces('StarWarsPuzzle04.png', 6)
+    collection.addPieces('StarWarsPuzzle05.png', 6)
+    collection.addPieces('StarWarsPuzzle06.png', 6)
+    collection.addPieces('StarWarsPuzzle07.png', 6)
+    collection.addPieces('StarWarsPuzzle08.png', 6)
 
-    images = []
-    for piece in collection.pieces:
-        piece_image = piece.getSubimage(0, with_details=True)
-        images.append(piece_image)
-
-    sq_size = math.ceil(math.sqrt(len(images)))
-
-    biggest_size = 0
-    for image in images:
-        image_size = max(image.shape[0], image.shape[1])
-        if image_size > biggest_size:
-            biggest_size = image_size
-    
-    all_pieces_image = np.zeros((biggest_size * sq_size, biggest_size * sq_size, 3), dtype=images[0].dtype)
-    for i in range(sq_size):
-        for j in range(sq_size):
-            index = sq_size*i+j
-            if index >= len(images):
-                break
-            h, w, _ = images[index].shape
-            all_pieces_image[biggest_size*j:biggest_size*j + h, biggest_size*i:biggest_size*i + w] = images[index]
-
-    cv2.imwrite(f'allPieces.jpg', all_pieces_image)
+    collection.showPieceImages()
