@@ -1,5 +1,6 @@
 import pygame
 import time
+import button
 
 
 class Window:
@@ -9,6 +10,9 @@ class Window:
         self.width = width
         self.height = height
         self.running = False
+        self.last_click_x = int()
+        self.last_click_y = int()
+        self.clicked = False
 
     # Create a window and set its needed settings
     def initWindow(self):
@@ -23,7 +27,15 @@ class Window:
     def update(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # Tells loop to stop
                 self.running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # get mouse position
+                mouse = pygame.mouse.get_pos()
+                # setup mouse for event handling -> MAKE CERTAIN TO SET self.clicked BACK TO FALSE WHEN EVENT HAS BEEN PROCESSED
+                self.last_click_x = mouse[0]
+                self.last_click_y = mouse[1]
+                self.clicked = True
 
     # Used to not clutter the render method
     def drawUploadRegion(self):
@@ -37,7 +49,7 @@ class Window:
 
         # Labels for upload area
         # Configure font
-        f1 = pygame.font.Font(pygame.font.get_default_font(), 32)
+        f1 = pygame.font.Font(pygame.font.get_default_font(), 34)
 
         # Setup label
         mLabel = f1.render('Upload Pieces', True, off_white, bg_gray)
@@ -45,6 +57,22 @@ class Window:
         mLabel_rect.topleft = (5, 5)
 
         self.window.blit(mLabel, mLabel_rect)
+
+        # Creating add file Button
+        # set some colors for weather or not the button is selected
+        button_selected = (60, 60, 60)
+        button_unselected = (50, 50, 50)
+        # set the buttons font
+        f2 = pygame.font.Font(pygame.font.get_default_font(), 12)
+        # Create button object
+        add = button.Button('+', 10, 60, 230, 30, f2,
+                            off_white, button_selected, button_unselected)
+        # draw the button
+        add.draw(self.window)
+        # Handle the click
+        if self.clicked and add.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            print('Add button was clicked!')
 
     # Render stuff to the window
 
