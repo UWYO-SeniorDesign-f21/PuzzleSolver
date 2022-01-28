@@ -16,6 +16,7 @@ class Window:
         pygame.display.set_caption(self.title)
         # Create drawing surface
         self.window = pygame.display.set_mode([self.width, self.height])
+        self.curent_add_point = 0
 
     # Process all events on the window
 
