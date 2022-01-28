@@ -24,10 +24,22 @@ class Window:
             if event.type == pygame.QUIT:
                 self.running = False
 
+    # Used to not clutter the render method
+    def drawUploadRegion(self):
+        # Draw a colored rectagle to differentiate the region
+        pygame.draw.rect(self.window, (74, 74, 74), pygame.Rect(
+            0, 0, self.window.get_width() / 4, self.window.get_height()))
+
     # Render stuff to the window
     def render(self):
         # Clear screen with white
         self.window.fill((255, 255, 255))
+
+        # DRAW HERE (Things are rended from top to bottom)
+
+        self.drawUploadRegion()
+
+        # END DRAWING
 
         # Display updated render to screen
         pygame.display.flip()
