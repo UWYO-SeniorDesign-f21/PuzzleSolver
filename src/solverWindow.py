@@ -80,7 +80,7 @@ class Window:
         # Clear screen with white
         self.window.fill((255, 255, 255))
 
-        # DRAW HERE (Things are rended from top to bottom)
+        # DRAW HERE (Things are rended from top to bottom, last listed is top layer)
 
         self.drawUploadRegion()
 
