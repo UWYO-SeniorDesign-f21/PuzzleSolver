@@ -1,41 +1,65 @@
-import tkinter as tk
-from tkinter import filedialog
+import pygame
+import time
 
 
-def uploadButtonFunction():
-    path = filedialog.askopenfilename()
-    uploadBox.delete(1.0, 'end')
-    uploadBox.insert(1.0, path)
+class Window:
+    # Constructor sets all nessasary variables for creating a window
+    def __init__(self, title: str, width: int, height: int):
+        self.title = title
+        self.width = width
+        self.height = height
+        self.running = False
+
+    # Create a window and set its needed settings
+    def initWindow(self):
+        # Set title
+        pygame.display.set_caption(self.title)
+        # Create drawing surface
+        self.window = pygame.display.set_mode([self.width, self.height])
+
+    # Process all events on the window
+
+    def update(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+
+    # Render stuff to the window
+    def render(self):
+        # Clear screen with white
+        self.window.fill((255, 255, 255))
+
+        # Display updated render to screen
+        pygame.display.flip()
+
+    # Runs the window
+    def run(self):
+        self.running = True
+        self.initWindow()
+
+        # Set run loop to operate at 72 fps
+        fps = 72
+        timePerFrame = 1000000000 / fps
+        delta = 1.0
+        now = int()
+        last = time.time_ns()
+        while self.running:
+            now = time.time_ns()
+            delta = delta + ((now - last) / timePerFrame)
+            last = now
+            if delta >= 1:
+                # Call update and render if on time
+                self.update()
+                self.render()
+                delta = delta - 1
+        # Quit pygame when loop completes
+        pygame.quit()
 
 
 if __name__ == '__main__':
-    # init window
-    window = tk.Tk()
-    window.title("Puzzle Solver")
-    window.geometry("1000x700")
-    window.resizable(False, False)
-
-    # Organization paneling
-    leftPanel = tk.PanedWindow(window, orient=tk.HORIZONTAL,
-                               background='#595959', bg='#595959', height=700, width=350)
-    leftPanel.pack(side=tk.LEFT, fill=tk.BOTH)
-
-    mainPanel = tk.PanedWindow(
-        window, orient=tk.HORIZONTAL, background='#808080', bg='#808080', height=700, width=650)
-    mainPanel.pack(side=tk.RIGHT, fill=tk.BOTH)
-
-    # file upload setup
-    uploadLabel = tk.Label(
-        leftPanel, text='Pieces Location:', background='#595959', fg='#cccccc')
-    uploadLabel.place(x=5, y=5, anchor=tk.NW)
-
-    global uploadBox
-    uploadBox = tk.Text(leftPanel, height=1, width=30)
-    uploadBox.place(x=100, y=5, anchor=tk.NW)
-
-    uploadButton = tk.Button(leftPanel, text='Open',
-                             command=uploadButtonFunction, height=1, width=10)
-    uploadButton.place(x=265, y=35, anchor=tk.NW)
-
-    # Run
-    window.mainloop()
+    # Initialize the library
+    pygame.init()
+    # Create a new window object
+    window = Window("Puzzle Solver", 1000, 650)
+    # Call the run method
+    window.run()
