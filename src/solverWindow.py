@@ -26,11 +26,27 @@ class Window:
 
     # Used to not clutter the render method
     def drawUploadRegion(self):
+        # set some frequently used colors
+        bg_gray = (74, 74, 74)
+        off_white = (230, 230, 230)
+
         # Draw a colored rectagle to differentiate the region
-        pygame.draw.rect(self.window, (74, 74, 74), pygame.Rect(
+        pygame.draw.rect(self.window, bg_gray, pygame.Rect(
             0, 0, self.window.get_width() / 4, self.window.get_height()))
 
+        # Labels for upload area
+        # Configure font
+        f1 = pygame.font.Font(pygame.font.get_default_font(), 32)
+
+        # Setup label
+        mLabel = f1.render('Upload Pieces', True, off_white, bg_gray)
+        mLabel_rect = mLabel.get_rect()
+        mLabel_rect.topleft = (5, 5)
+
+        self.window.blit(mLabel, mLabel_rect)
+
     # Render stuff to the window
+
     def render(self):
         # Clear screen with white
         self.window.fill((255, 255, 255))
