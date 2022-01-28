@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import find_peaks
+import matplotlib.pyplot as plt
 import math
 import imutils
 import cv2
@@ -19,6 +20,7 @@ getSubimage
 class Piece:
     def __init__(self, label, image, contour):
         self.label = label
+        # print(label)
         self.image = image
         self.contour = contour
         self.corners = findCorners(self.contour)
@@ -69,6 +71,10 @@ class Piece:
 
                 cv2.drawContours(image_piece_isolated, edge.contour, -1, color, thickness=5)
 
+                # for i, point in enumerate(edge.contour[:,0]):
+                #     if i % 5 == 0 and i < len(edge.color_arr):
+                #         cv2.circle(image_piece_isolated, (point[0], point[1]), 5, edge.color_arr[i], thickness=-1, lineType=cv2.FILLED)
+
         # crop to the circle
         image_crop = image_piece_isolated[max(int(y) - int(r), 0):min(int(y) + int(r), h), 
                                         max(int(x) - int(r), 0):min(int(x) + int(r), w)]
@@ -87,7 +93,15 @@ def findCorners(contour):
     centered_contour = contour - center
 
     rho, phi = cart2pol(centered_contour[:,0,0], centered_contour[:,0,1])
+    rho = np.concatenate((rho[-10:], rho))
     peaks, _ = find_peaks(rho, distance=50)
+    rho = rho[10:]
+    peaks -= 10
+    if np.any(peaks < 0):
+        if not np.any(peaks > len(rho) - 50):
+            peaks[np.where(peaks < 0)] += len(phi)
+        else:
+            peaks = peaks[np.where(peaks >= 0)]
 
     # delete potential duplicate peaks on the extreme ends (as 360 degrees is equal to 0 degrees)
     if (peaks[0] + len(rho) - peaks[-1] <= 50):
@@ -102,10 +116,10 @@ def findCorners(contour):
     # find the differences between the peak height and the points on either side
     # normalize so that the peak height is treated to be the same as rho_max
     # remove peaks that are not higher than the points on the left and right
-    diff_left = rho_max - rho_max * rho[(peaks-30) % len(rho)] / rho[peaks]
-    diff_left[np.where(diff_left < 0)] = 0
-    diff_right = rho_max - rho_max * rho[(peaks+30) % len(rho)] / rho[peaks]
-    diff_right[np.where(diff_right < 0)] = 0
+    diff_left = rho_max - rho_max * rho[(peaks-15) % len(rho)] / rho[peaks]
+    diff_left[np.where(diff_left < 2)] = 0
+    diff_right = rho_max - rho_max * rho[(peaks+15) % len(rho)] / rho[peaks]
+    diff_right[np.where(diff_right < 2)] = 0
 
     # find a metric for sharpness by multiplying these values
     sharpness = diff_left * diff_right
@@ -120,6 +134,10 @@ def findCorners(contour):
     # sort in increasing order based on phi (clockwise)
     order = np.argsort([phi[peaks]])
     peaks = peaks[order][0]
+
+    # plt.plot(rho)
+    # plt.plot(peaks, rho[peaks], 'x')
+    # plt.show()
 
     corners = np.zeros((4,3), dtype=np.int)
 

@@ -6,7 +6,8 @@ import numpy as np
 
 def main():
     # used when saving pics
-    puzzle_name = 'StarWarsPuzzle'
+    puzzle_name = 'starwars'
+    dims = (6,8)
 
     # add pieces
     collection = PieceCollection()
@@ -18,6 +19,28 @@ def main():
     collection.addPieces('StarWarsPuzzle06.png', 6)
     collection.addPieces('StarWarsPuzzle07.png', 6)
     collection.addPieces('StarWarsPuzzle08.png', 6)
+
+    # puzzle_name = 'pokemon1'
+    # dims = (10, 10)
+
+    # # add pieces
+    # collection = PieceCollection()
+    # collection.addPieces('pokemon_puzzle_1_01.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_02.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_03.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_04.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_05.png', 20)
+
+    # puzzle_name = 'pokemon2'
+    # dims = (10, 10)
+
+    # # add pieces
+    # collection = PieceCollection()
+    # collection.addPieces('pokemon_puzzle_2_01.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_02.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_03.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_04.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_05.png', 20)
 
     # distance btw all edges
     dist_dict = getDistDict(collection.pieces)
@@ -34,16 +57,56 @@ def main():
     #cv2.imwrite(f'{puzzle_name}AllPiecesDetails.png', image)
 
     # get that solution image :O
-    solver = PuzzleSolver(collection, (6, 8), dist_dict)
-    solver.solvePuzzle()
+    
+    #solver = getSolutionRandomTrials(20, collection, dims, dist_dict)
+    #solver = getSolutionBestEdge(collection, dims, dist_dict)
+    solver = getSolutionAllPieces(collection, dims, dist_dict)
+    print(f'score: {solver.score}')
+
     solution_image = solver.getSolutionImage()
+
     h, w, _ = solution_image.shape
-
-
+    
     cv2.imshow('best solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
     cv2.waitKey()
 
     cv2.imwrite(f'{puzzle_name}SimpleSolution.png', solution_image)
+
+
+def getSolutionRandomTrials(trials, collection, dimensions, dist_dict):
+    min_solver = None
+    min_score = float('inf')
+    for i in range(trials):
+        solver = PuzzleSolver(collection, dimensions, dist_dict)
+        solver.solvePuzzle(random_start=True)
+        if solver.score < min_score:
+            min_score = solver.score
+            min_solver = solver
+        solution_image = solver.getSolutionImage()
+        h, w, _ = solution_image.shape
+        cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+        cv2.waitKey(1)
+    return min_solver
+
+def getSolutionAllPieces(collection, dimensions, dist_dict):
+    min_solver = None
+    min_score = float('inf')
+    for i in range(len(collection.pieces)):
+        solver = PuzzleSolver(collection, dimensions, dist_dict)
+        solver.solvePuzzle(start = collection.pieces[i])
+        if solver.score < min_score:
+            min_score = solver.score
+            min_solver = solver
+        solution_image = solver.getSolutionImage()
+        h, w, _ = solution_image.shape
+        cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+        cv2.waitKey(1)
+    return min_solver
+
+def getSolutionBestEdge(collection, dimensions, dist_dict):
+    solver = PuzzleSolver(collection, dimensions, dist_dict)
+    solver.solvePuzzle()
+    return solver
 
 class PuzzleSolver:
     def __init__(self, pieces, size_inches, dist_dict):
@@ -57,7 +120,7 @@ class PuzzleSolver:
 
         self.score = 0 
 
-    def solvePuzzle(self):
+    def solvePuzzle(self, random_start=False, show_solve=False, start=None):
         # add in minimum dist to start the kernel
         keys = self.dist_dict.keys()
         good_keys = [key for key in keys if self.dist_dict.get(key) < float('inf')]
@@ -65,9 +128,14 @@ class PuzzleSolver:
         max_dist_key = max(good_keys, key=self.dist_dict.get)
         max_dist = self.dist_dict.get(max_dist_key)
 
-        piece1, edge1, piece2, edge2 = min_dist_key
-        #piece1 = random.choice(self.pieces.pieces)
-        #edge1 = random.choice(range(4))
+        if not random_start and not start:
+            piece1, edge1, piece2, edge2 = min_dist_key
+        elif not random_start and start:
+            piece1 = start
+            edge1 = random.choice(range(4))
+        else:
+            piece1 = random.choice(self.pieces.pieces)
+            edge1 = random.choice(range(4))
         
         # piece1 at position 0,0 with edge1 up
         self.position_dict[(0,0)] = (piece1, edge1)
@@ -103,10 +171,13 @@ class PuzzleSolver:
                         # check if each edge is valid, find the distance
                         valid = True
                         for adj_edge in adj_edges:
-                            if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
+                            adj_dist = self.dist_dict[adj_edge]
+                            if adj_dist == float('inf') or not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
                                 valid = False
                                 break
                             dist += self.dist_dict[adj_edge]
+                            if self.dist_dict[adj_edge] == float('inf'):
+                                print('bees')
                         if not valid:
                             continue
                         has_possible_pieces = True
@@ -158,6 +229,13 @@ class PuzzleSolver:
                 # get the locations of the left, right, top, and bottom edges of the puzzle if applicable
                 self.updateEdges(piece2, piece2_loc, piece2_edge_up)
 
+            if show_solve:
+                print(len(remaining_pieces), len(kernel))
+                image = self.getSolutionImage(with_details=True)
+                h, w, _  = image.shape
+                cv2.imshow(f'solution', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+                cv2.waitKey()
+
         # for any empty spots, penalty
         self.score += 4*len(remaining_pieces)*max_dist
 
@@ -171,29 +249,6 @@ class PuzzleSolver:
         height = max_y - min_y + 1
 
         print(len(remaining_pieces), len(kernel), min(width, height), max(width, height), self.score)
-
-        # print(min(width, height), max(width, height), len(remaining_pieces), len(kernel))
-
-        # if min(width, height) != min(self.puzzle_dims):
-        #     print('\n\n\n\nuhohohohoh the smaller side was WRONG\n\n\n\n')
-        #     print(len(remaining_pieces), len(kernel))
-        #     image = self.getSolutionImage(with_details=True)
-        #     h, w, _  = image.shape
-        #     cv2.imshow(f'bad size', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
-        #     cv2.waitKey()
-        # elif max(width, height) != max(self.puzzle_dims):
-        #     print('\n\n\n\nuhohohohoh the bigger side was WRONG\n\n\n\n')
-        #     print(len(remaining_pieces), len(kernel))
-        #     image = self.getSolutionImage(with_details=True)
-        #     h, w, _  = image.shape
-        #     cv2.imshow(f'bad size', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
-        #     cv2.waitKey()
-        # if len(kernel) > -1:
-            # print(len(remaining_pieces), len(kernel))
-            # image = self.getSolutionImage(with_details=True)
-            # h, w, _  = image.shape
-            # cv2.imshow(f'solution', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
-            # cv2.waitKey()
 
     # returns the edges adjacent to a piece (in the existing group put together so far) if it were to be added
     def getAdjacentEdges(self, piece1, edge1, piece2, edge2):
@@ -249,10 +304,6 @@ class PuzzleSolver:
 
     # checks if a piece would break any rules of a consistent, correctly put together puzzle if it were added
     def isValid(self, piece1, edge1, piece2, edge2, check_pos=True):
-        #dist = self.dist_dict[(piece1, edge1, piece2, edge2)]
-        #if dist == float('inf'):
-        #    return False
-        
         # if there is already a piece there, not valid
         piece2_loc, piece2_edge_up = getPieceInfo(piece1, edge1, edge2, self.info_dict)
         if self.position_dict.get(piece2_loc):
@@ -335,6 +386,8 @@ class PuzzleSolver:
                     return False
                 if min(width, height) > min(self.puzzle_dims):
                     return False
+        else:
+            middle_width = middle_height = 0
 
 
         if piece2.type == 'side' or piece2.type == 'corner':
@@ -580,7 +633,7 @@ def getPieceInfo(piece1, edge1, edge2, info_dict):
 
 # temporary filler function
 def getPuzzleDims(size_inches, num_pieces):
-    return 6, 8
+    return size_inches # for now just putting the actual number of pieces in as size_inches oops
 
 # returns a dict containing the distances between all edges
 def getDistDict(pieces):

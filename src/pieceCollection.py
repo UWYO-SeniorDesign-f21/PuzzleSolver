@@ -113,7 +113,7 @@ def showLabels( img, contours, labels ):
 
         
 def getContours(image, num_pieces):
-    color_range = [10, 10, 30]
+    color_range = [10, 15, 30]
     # convert the image to the hsv color spectrum
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -166,4 +166,12 @@ if __name__ == '__main__':
     collection.addPieces('StarWarsPuzzle07.png', 6)
     collection.addPieces('StarWarsPuzzle08.png', 6)
 
+    # collection.addPieces('pokemon_puzzle_1_01.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_02.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_03.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_04.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_05.png', 20)
+
     collection.showPieceImages()
+    all_pieces = collection.getAllPiecesImage(with_details=True)
+    cv2.imwrite('starwars_puzzle_all_pieces.png', all_pieces)
