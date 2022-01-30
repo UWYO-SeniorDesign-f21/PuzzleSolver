@@ -7,7 +7,7 @@ import numpy as np
 def main():
     # used when saving pics
     puzzle_name = 'starwars'
-    dims = (6,8)
+    dims = (11,15)
 
     # add pieces
     collection = PieceCollection()
@@ -633,7 +633,27 @@ def getPieceInfo(piece1, edge1, edge2, info_dict):
 
 # temporary filler function
 def getPuzzleDims(size_inches, num_pieces):
-    return size_inches # for now just putting the actual number of pieces in as size_inches oops
+    diff = 1000
+    side_Ratio = size_inches[1] / size_inches[0]
+    predict_Ratio = 0
+    predict_w,predict_h = 0,0
+
+    for i in range(1,int(pow(num_pieces, 1 / 2)) + 1):
+        if num_pieces % i == 0:
+            if size_inches[1] < size_inches[0]:
+                predict_Ratio = i / int(num_pieces / i)
+            else:
+                predict_Ratio = int(num_pieces / i) / i
+            if abs(side_Ratio - predict_Ratio) < diff:
+                diff = abs(side_Ratio - predict_Ratio)
+                if size_inches[1] < size_inches[0]:
+                    predict_w = i
+                    predict_h = int(num_pieces / i)
+                else:
+                    predict_w = int(num_pieces / i)
+                    predict_h = i
+    print("Puzzle dimensions(Height/Width):", predict_h, predict_w)
+    return predict_h,predict_w # for now just putting the actual number of pieces in as size_inches oops
 
 # returns a dict containing the distances between all edges
 def getDistDict(pieces):
