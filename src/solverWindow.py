@@ -74,6 +74,14 @@ class Window:
             self.clicked = False
             print('Add button was clicked!')
 
+        # Run Button stuff
+        run_button = button.Button(
+            'Run', 10, 610, 230, 30, f2, off_white, button_selected, button_unselected)
+        run_button.draw(self.window)
+        if self.clicked and run_button.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            print('The run button was clicked!')
+
     # Render stuff to the window
 
     def render(self):
