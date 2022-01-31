@@ -1,7 +1,13 @@
 import pygame
 import time
+import pathlib
 import button
 import fileBox
+from tkinter import filedialog
+
+
+def shortenPath(path, new_len):
+    return pathlib.Path(*pathlib.Path(path).parts[-new_len:]).__str__()
 
 
 class Window:
@@ -22,6 +28,7 @@ class Window:
         # Create drawing surface
         self.window = pygame.display.set_mode([self.width, self.height])
         self.curent_add_point = 0
+        self.paths = []
 
     # Process all events on the window
 
@@ -90,8 +97,11 @@ class Window:
             add_button.draw(self.window)
             if self.clicked and add_button.isInButton(self.last_click_x, self.last_click_y):
                 self.clicked = False
-                print('Add Button clicked!')
-                self.curent_add_point = self.curent_add_point + 1
+                path = filedialog.askopenfilename(
+                    filetypes=[('.png', '*.png')])
+                if path != '':
+                    self.curent_add_point = self.curent_add_point + 1
+                    self.paths.append(path)
 
         # Temp file box
         # file_null = fileBox.FileBox('NULL', 10, 100, 230, 30, f2)
@@ -100,7 +110,19 @@ class Window:
         #     self.clicked = False
         #     print('X pressed')
 
+        offset = 0
+        for path in self.paths:
+            file_box = fileBox.FileBox(
+                shortenPath(path, 1), 10, 60 + (40 * offset), 230, 30, f2)
+            file_box.draw(self.window)
+            offset = offset + 1
+            if self.clicked and file_box.isInButton(self.last_click_x, self.last_click_y):
+                self.clicked = False
+                self.paths.remove(path)
+                self.curent_add_point = self.curent_add_point - 1
+
     # Render stuff to the window
+
     def render(self):
         # Clear screen with white
         self.window.fill((255, 255, 255))
