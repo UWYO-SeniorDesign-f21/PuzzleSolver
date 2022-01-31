@@ -74,15 +74,24 @@ class Window:
             self.clicked = False
             print('The run button was clicked!')
 
-        # Create button object
-        add = button.Button('+', 10, 60, 230, 30, f2,
-                            off_white, button_selected, button_unselected)
-        # draw the button
-        add.draw(self.window)
-        # Handle the click
-        if self.clicked and add.isInButton(self.last_click_x, self.last_click_y):
-            self.clicked = False
-            print('Add button was clicked!')
+        # # Create button object
+        # add = button.Button('+', 10, 60, 230, 30, f2,
+        #                     off_white, button_selected, button_unselected)
+        # # draw the button
+        # add.draw(self.window)
+        # # Handle the click
+        # if self.clicked and add.isInButton(self.last_click_x, self.last_click_y):
+        #     self.clicked = False
+        #     print('Add button was clicked!')
+
+        if self.curent_add_point < 13:
+            add_button = button.Button('+', 10, 60 + (40 * self.curent_add_point),
+                                       230, 30, f2, off_white, button_selected, button_unselected)
+            add_button.draw(self.window)
+            if self.clicked and add_button.isInButton(self.last_click_x, self.last_click_y):
+                self.clicked = False
+                print('Add Button clicked!')
+                self.curent_add_point = self.curent_add_point + 1
 
         # Temp file box
         # file_null = fileBox.FileBox('NULL', 10, 100, 230, 30, f2)
