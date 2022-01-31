@@ -3,36 +3,37 @@ from pieceCollection import PieceCollection
 import random
 import cv2
 import numpy as np
+from timeit import default_timer as timer
 
 def main():
     # used when saving pics
-    puzzle_name = 'starwars'
-    dims = (11,15)
-
-    # add pieces
-    collection = PieceCollection()
-    collection.addPieces('StarWarsPuzzle01.png', 6)
-    collection.addPieces('StarWarsPuzzle02.png', 6)
-    collection.addPieces('StarWarsPuzzle03.png', 6)
-    collection.addPieces('StarWarsPuzzle04.png', 6)
-    collection.addPieces('StarWarsPuzzle05.png', 6)
-    collection.addPieces('StarWarsPuzzle06.png', 6)
-    collection.addPieces('StarWarsPuzzle07.png', 6)
-    collection.addPieces('StarWarsPuzzle08.png', 6)
-
-    # puzzle_name = 'pokemon1'
-    # dims = (10, 10)
+    # puzzle_name = 'starwars'
+    # dims = (11,15)
 
     # # add pieces
     # collection = PieceCollection()
-    # collection.addPieces('pokemon_puzzle_1_01.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_02.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_03.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_04.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_05.png', 20)
+    # collection.addPieces('StarWarsPuzzle01.png', 6)
+    # collection.addPieces('StarWarsPuzzle02.png', 6)
+    # collection.addPieces('StarWarsPuzzle03.png', 6)
+    # collection.addPieces('StarWarsPuzzle04.png', 6)
+    # collection.addPieces('StarWarsPuzzle05.png', 6)
+    # collection.addPieces('StarWarsPuzzle06.png', 6)
+    # collection.addPieces('StarWarsPuzzle07.png', 6)
+    # collection.addPieces('StarWarsPuzzle08.png', 6)
+
+    puzzle_name = 'pokemon1'
+    dims = (14.7, 10.5)
+
+    # add pieces
+    collection = PieceCollection()
+    collection.addPieces('pokemon_puzzle_1_01.png', 20)
+    collection.addPieces('pokemon_puzzle_1_02.png', 20)
+    collection.addPieces('pokemon_puzzle_1_03.png', 20)
+    collection.addPieces('pokemon_puzzle_1_04.png', 20)
+    collection.addPieces('pokemon_puzzle_1_05.png', 20)
 
     # puzzle_name = 'pokemon2'
-    # dims = (10, 10)
+    # dims = (15, 11)
 
     # # add pieces
     # collection = PieceCollection()
@@ -58,9 +59,9 @@ def main():
 
     # get that solution image :O
     
-    #solver = getSolutionRandomTrials(20, collection, dims, dist_dict)
+    solver = getSolutionRandomTrials(20, collection, dims, dist_dict, time=True)
     #solver = getSolutionBestEdge(collection, dims, dist_dict)
-    solver = getSolutionAllPieces(collection, dims, dist_dict)
+    #solver = getSolutionAllPieces(collection, dims, dist_dict, time=True)
     print(f'score: {solver.score}')
 
     solution_image = solver.getSolutionImage()
@@ -73,34 +74,56 @@ def main():
     cv2.imwrite(f'{puzzle_name}SimpleSolution.png', solution_image)
 
 
-def getSolutionRandomTrials(trials, collection, dimensions, dist_dict):
+def getSolutionRandomTrials(trials, collection, dimensions, dist_dict, show_solutions=False, time=False):
     min_solver = None
     min_score = float('inf')
+    if time:
+        total_time = 0
     for i in range(trials):
+        if time:
+            start = timer()
         solver = PuzzleSolver(collection, dimensions, dist_dict)
         solver.solvePuzzle(random_start=True)
         if solver.score < min_score:
             min_score = solver.score
             min_solver = solver
-        solution_image = solver.getSolutionImage()
-        h, w, _ = solution_image.shape
-        cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
-        cv2.waitKey(1)
+        if time:
+            end = timer()
+            print(end - start)
+            total_time += (end - start)
+        if show_solutions:
+            solution_image = solver.getSolutionImage()
+            h, w, _ = solution_image.shape
+            cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+            cv2.waitKey(1)
+    if time:
+        print(f'{trials} solutions found in {total_time:.2f} seconds')
     return min_solver
 
-def getSolutionAllPieces(collection, dimensions, dist_dict):
+def getSolutionAllPieces(collection, dimensions, dist_dict, show_solutions=False, time=False):
     min_solver = None
     min_score = float('inf')
+    if time:
+        total_time = 0
     for i in range(len(collection.pieces)):
+        if time:
+            start = timer()
         solver = PuzzleSolver(collection, dimensions, dist_dict)
         solver.solvePuzzle(start = collection.pieces[i])
         if solver.score < min_score:
             min_score = solver.score
             min_solver = solver
-        solution_image = solver.getSolutionImage()
-        h, w, _ = solution_image.shape
-        cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
-        cv2.waitKey(1)
+        if time:
+            end = timer()
+            print(end - start)
+            total_time += end - start
+        if show_solutions:
+            solution_image = solver.getSolutionImage()
+            h, w, _ = solution_image.shape
+            cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+            cv2.waitKey(1)
+    if time:
+        print(f'{len(collection.pieces)} solutions found in {total_time:.2f} seconds')
     return min_solver
 
 def getSolutionBestEdge(collection, dimensions, dist_dict):
@@ -112,6 +135,7 @@ class PuzzleSolver:
     def __init__(self, pieces, size_inches, dist_dict):
         self.pieces = pieces # pieceCollection object
         self.puzzle_dims = getPuzzleDims(size_inches, len(pieces.pieces)) # temp filler function
+        print(self.puzzle_dims)
         self.dist_dict = dist_dict # distance btw all edges
 
         self.position_dict = {} # x y coords to piece
@@ -149,85 +173,83 @@ class PuzzleSolver:
         self.info_dict[piece1] = ((0, 0), edge1)
 
         kernel = set() # group of possible edges to extend off of
+        kernel_num_edges = {}
         for edge in range(4):
             kernel.add((piece1, edge))
+            kernel_num_edges[(piece1, edge)] = 1
 
         # while pieces are able to be added
         while len(remaining_pieces) > 0 and len(kernel) > 0:
             # print(len(remaining_pieces), len(kernel))
-            min_edge = [None, None, None, None] # for pieces with 1, 2, 3, 4 adjacent pieces
-            min_adj = [None, None, None, None]
-            min_dist = [float('inf'), float('inf'), float('inf'), float('inf')]
+            min_edge = None
+            min_adj = None
+            min_dist = float('inf')
             # loop over possible edges to extend and possible edges to connect to them
-            for piece1, edge1  in kernel:
-                has_possible_pieces = False # could be used to remove excess sides from kernel but isn't -_-
-                piece1_loc, piece1_edge_up = self.info_dict[piece1]
-                for piece2 in remaining_pieces:
-                    for edge2 in range(4):
-                        # get the edges that are adjacent to the piece being inserted
-                        adj_edges = self.getAdjacentEdges(piece1, edge1, piece2, edge2)
-                        num_edges = len(adj_edges) - 1
-                        dist = 0
-                        # check if each edge is valid, find the distance
-                        valid = True
-                        for adj_edge in adj_edges:
-                            adj_dist = self.dist_dict[adj_edge]
-                            if adj_dist == float('inf') or not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
-                                valid = False
-                                break
-                            dist += self.dist_dict[adj_edge]
-                            if self.dist_dict[adj_edge] == float('inf'):
-                                print('bees')
-                        if not valid:
-                            continue
-                        has_possible_pieces = True
-                        # update minimum distance for that number of adj edges
-                        if dist < min_dist[num_edges]:
-                            min_dist[num_edges] = dist
-                            min_edge[num_edges] = (piece1, edge1, piece2, edge2)
-                            min_adj[num_edges] = adj_edges
+            for num_adj in [4, 3, 2, 1]:
+                kernel_num_adj = [key for key in kernel if kernel_num_edges.get(key) == num_adj]
+                for piece1, edge1 in kernel_num_adj:
+                    has_possible_pieces = False # could be used to remove excess sides from kernel but isn't -_-
+                    piece1_loc, piece1_edge_up = self.info_dict[piece1]
+                    for piece2 in remaining_pieces:
+                        for edge2 in range(4):
+                            # get the edges that are adjacent to the piece being inserted
+                            adj_edges = self.getAdjacentEdges(piece1, edge1, piece2, edge2)
+                            dist = 0
+                            # check if each edge is valid, find the distance
+                            valid = True
+                            for adj_edge in adj_edges:
+                                adj_dist = self.dist_dict[adj_edge]
+                                if adj_dist == float('inf') or not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
+                                    valid = False
+                                    break
+                                dist += self.dist_dict[adj_edge]
+                            if not valid:
+                                continue
+                            has_possible_pieces = True
+                            # update minimum distance for that number of adj edges
+                            if dist < min_dist:
+                                min_dist = dist
+                                min_edge = (piece1, edge1, piece2, edge2)
+                                min_adj = adj_edges
+                if not min_edge is None:
+                    break
 
-            # get the highest number of adjacent edges found
-            # i.e. prioritize pieces with more information
-            most_edges = None
-            for i, edge in enumerate(min_edge):
-                if not edge:
-                    continue
-                most_edges = i
-            if most_edges is None: # if there are no possible piece locations
+            if min_edge is None: # if there are no possible piece locations
                 break
-            else:
-                # get the closest edge
-                piece1, edge1, piece2, edge2 = min_edge[most_edges]
-                remaining_pieces.remove(piece2) # update available pieces, as piece2 is added to group
+            # get the closest edge
+            piece1, edge1, piece2, edge2 = min_edge
+            remaining_pieces.remove(piece2) # update available pieces, as piece2 is added to group
 
-                # update the score, kernel
-                for edge in min_adj[most_edges]:
-                    dist = self.dist_dict[edge[0], edge[1], edge[2], edge[3]]
-                    self.score += dist
-                    if (edge[0], edge[1]) in kernel:
-                        kernel.remove((edge[0], edge[1]))
-                    else:
-                        print('zoinks')
+            # update the score, kernel
+            for edge in min_adj:
+                dist = self.dist_dict[edge[0], edge[1], edge[2], edge[3]]
+                self.score += dist
+                if (edge[0], edge[1]) in kernel:
+                    kernel.remove((edge[0], edge[1]))
+                    kernel_num_edges.pop((edge[0], edge[1]), None)
+                else:
+                    print('zoinks')
 
-                # get the location and edge up of piece 2, update info dict, position dict
-                piece2_loc, piece2_edge_up = getPieceInfo(piece1, edge1, edge2, self.info_dict)
+            # get the location and edge up of piece 2, update info dict, position dict
+            piece2_loc, piece2_edge_up = getPieceInfo(piece1, edge1, edge2, self.info_dict)
 
-                self.info_dict[piece2] = (piece2_loc, piece2_edge_up)
-                self.position_dict[piece2_loc] = (piece2, piece2_edge_up)
+            self.info_dict[piece2] = (piece2_loc, piece2_edge_up)
+            self.position_dict[piece2_loc] = (piece2, piece2_edge_up)
 
-                # add edges that are facing an empty spot to kernel
-                used_edges = [edge[3] for edge in min_adj[most_edges]]
-                for edge in range(4):
-                    if edge not in used_edges:
-                        new_piece_loc, _ = getPieceInfo(piece2, edge, 0, self.info_dict)
-                        if self.position_dict.get(new_piece_loc):
-                            continue
-                        if piece2.edges[edge].label != 'flat':
-                            kernel.add((piece2, edge))
+            # add edges that are facing an empty spot to kernel
+            used_edges = [edge[3] for edge in min_adj]
+            for edge in range(4):
+                if edge not in used_edges:
+                    new_piece_loc, _ = getPieceInfo(piece2, edge, 0, self.info_dict)
+                    if self.position_dict.get(new_piece_loc):
+                        continue
+                    elif piece2.edges[edge].label != 'flat':
+                        kernel.add((piece2, edge))
+                        num_adj = len(self.getAdjacentEdges(piece2, edge, None, 0))
+                        kernel_num_edges[(piece2, edge)] = num_adj
 
-                # get the locations of the left, right, top, and bottom edges of the puzzle if applicable
-                self.updateEdges(piece2, piece2_loc, piece2_edge_up)
+            # get the locations of the left, right, top, and bottom edges of the puzzle if applicable
+            self.updateEdges(piece2, piece2_loc, piece2_edge_up)
 
             if show_solve:
                 print(len(remaining_pieces), len(kernel))
