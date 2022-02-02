@@ -1,3 +1,4 @@
+from email.policy import default
 import pygame
 import time
 import pathlib
@@ -10,6 +11,7 @@ def shortenPath(path, new_len):
     return pathlib.Path(*pathlib.Path(path).parts[-new_len:]).__str__()
 
 
+
 class Window:
     # Constructor sets all nessasary variables for creating a window
     def __init__(self, title: str, width: int, height: int):
@@ -20,6 +22,9 @@ class Window:
         self.last_click_x = int()
         self.last_click_y = int()
         self.clicked = False
+        self.x = 640
+        self.y = 480
+        self.resultImage = 'test.png'
 
     # Create a window and set its needed settings
     def initWindow(self):
@@ -79,6 +84,7 @@ class Window:
         run_button.draw(self.window)
         if self.clicked and run_button.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
+            # self.resultImage = 'result.jpg'
             print('The run button was clicked!')
 
         # # Create button object
@@ -121,15 +127,59 @@ class Window:
                 self.paths.remove(path)
                 self.curent_add_point = self.curent_add_point - 1
 
+    # Render in the result of simpleSolver and Zoom button
+    def drawSolverArea(self):
+        #Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
+        std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
+        off_white = (230, 230, 230)
+        button_selected = (80, 80, 80)
+        button_unselected = (50, 50, 50)
+
+
+        #Implementation of Solved Puzzle Section (Puzzle solver output will display using this.)
+        testIMG = pygame.image.load(self.resultImage)
+        testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
+        self.window.blit(testIMG, (300, 46))
+        
+
+        #Implementation of Zoom In Button
+        zoomPlus = button.Button(
+            '+', ((self.window.get_width() / 2) + 40), 590, 50, 50, 
+                    std_font, off_white, button_selected, button_unselected)
+        zoomPlus.draw(self.window)
+        if self.clicked and zoomPlus.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            self.x = self.x + 60 
+            self.y = self.y + 60
+            #self.window.blit(testIMG, (300, 46))
+            print("Zooming into image")
+
+        #Implementation for Zoom Out Button
+        zoomMinus = button.Button(
+            '-', (self.window.get_width() / 2) -40, 590, 50, 50, 
+                    std_font, off_white, button_selected, button_unselected)
+        zoomMinus.draw(self.window)
+        if self.clicked and zoomMinus.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            self.x = self.x - 60 
+            self.y = self.y - 60
+            #self.window.blit(testIMG, (300, 46))
+            print("Zooming out from image")
+
+
+
+
     # Render stuff to the window
 
     def render(self):
         # Clear screen with white
-        self.window.fill((255, 255, 255))
+        self.window.fill((255, 253, 231))
 
         # DRAW HERE (Things are rended from top to bottom, last listed is top layer)
 
         self.drawUploadRegion()
+
+        self.drawSolverArea()
 
         # END DRAWING
 
