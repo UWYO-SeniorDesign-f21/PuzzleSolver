@@ -1,10 +1,14 @@
 from email.policy import default
+from xmlrpc.client import Boolean
 import pygame
 import time
 import pathlib
 import button
 import fileBox
 from tkinter import filedialog
+from tkinter import * 
+from tkinter.ttk import *
+import os
 
 
 def shortenPath(path, new_len):
@@ -35,6 +39,16 @@ class Window:
         self.curent_add_point = 0
         self.paths = []
 
+#
+ #   def settingsWindow(self):
+  #      # Set title
+   #     pygame.display.set_caption("Settings: ")
+    #    # Create drawing surface
+     #   self.window = pygame.display.set_mode([(self.width / 3) * 2, self.height])
+      #  self.curent_add_point = 0
+       # self.paths = []
+
+
     # Process all events on the window
 
     def update(self):
@@ -49,7 +63,7 @@ class Window:
                 self.last_click_x = mouse[0]
                 self.last_click_y = mouse[1]
                 self.clicked = True
-
+                
     # Used to not clutter the render method
     def drawUploadRegion(self):
         # set some frequently used colors
@@ -63,6 +77,8 @@ class Window:
         # Labels for upload area
         # Configure font
         f1 = pygame.font.Font(pygame.font.get_default_font(), 34)
+
+        
 
         # Setup label
         mLabel = f1.render('Upload Pieces', True, off_white, bg_gray)
@@ -166,8 +182,31 @@ class Window:
             #self.window.blit(testIMG, (300, 46))
             print("Zooming out from image")
 
+        
+        #Access settings.png from current directory
+        THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+        my_file = os.path.join(THIS_FOLDER, 'settings.png')
 
+        photo = pygame.image.load(my_file)
 
+        # Scale the image to size
+        DEFAULT_IMAGE_SIZE = (55, 55)
+        settingsClicked = False
+
+        photo = pygame.transform.scale(photo, DEFAULT_IMAGE_SIZE)
+
+        # Create button
+        settingsButton = button.Button(
+            '', self.window.get_width() -60, self.window.get_height() - 60, 55, 55, 
+                    std_font, off_white, (210, 210, 210), (240,240,240))
+        settingsButton.draw(self.window)
+        if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False      
+            pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
+                2* (self.window.get_width() /3), 0, self.window.get_width(), self.window.get_height()))
+        
+        self.window.blit(photo, (self.window.get_width() -60, self.window.get_height()-60))
+      
 
     # Render stuff to the window
 
