@@ -6,8 +6,6 @@ import pathlib
 import button
 import fileBox
 from tkinter import filedialog
-from tkinter import *
-from tkinter.ttk import *
 import os
 
 
@@ -248,8 +246,6 @@ class Window:
 
         closeX = pygame.transform.scale(closeX, DEFAULT_IMAGE_SIZE)
 
-        
-
         if self.settings:
             settingsClose = button.Button(
                 'x', self.window.get_width() - 60, 0, 55, 55,
@@ -292,11 +288,8 @@ class Window:
                 self.settings = False;
                 self.drawUploadRegion()
                 self.drawSolverArea()
+                self.closeClick = False;
                  
-  
-            
-                
-            
 
         # END DRAWING
 
