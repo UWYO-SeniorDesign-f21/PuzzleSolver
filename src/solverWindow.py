@@ -195,14 +195,14 @@ class Window:
             std_font, off_white, (210, 210, 210), (240, 240, 240))
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
-            self.clicked = False
+           # self.clicked = False
             pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
                 2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
 
         self.window.blit(photo, (self.window.get_width() -
                          60, self.window.get_height()-60))
 
-    def drawSettingButton(self):
+    def drawSettingsButton(self):
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
         button_selected = (80, 80, 80)
@@ -226,18 +226,18 @@ class Window:
             std_font, off_white, (210, 210, 210), (240, 240, 240))
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
-            self.clicked = False
+            #self.clicked = False
             self.settings = True
-            pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
-                2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
-
+            
         self.window.blit(photo, (self.window.get_width() -
                          60, self.window.get_height()-60))
 
     def drawSettingsScreen(self):
         # nothin yet
         x = 1
-        # Render stuff to the window
+        pygame.draw.rect(self.window, (50, 50, 50), pygame.Rect(2 * (self.window.get_width() / 3),
+            0, self.window.get_width(), self.window.get_height()))
+
 
     def render(self):
         # Clear screen with white
@@ -248,9 +248,14 @@ class Window:
         if not self.settings:
             self.drawUploadRegion()
             self.drawSolverArea()
-            self.drawSettingButton()
+            self.drawSettingsButton()
+       
+           
         else:
+            self.drawUploadRegion()
+            self.drawSolverArea()
             self.drawSettingsScreen()
+
 
         # END DRAWING
 
