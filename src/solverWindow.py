@@ -38,7 +38,7 @@ class Window:
         self.curent_add_point = 0
         self.paths = []
         self.settings = False
-
+        self.closeClick = False
 #
  #   def settingsWindow(self):
   #      # Set title
@@ -218,7 +218,7 @@ class Window:
         DEFAULT_IMAGE_SIZE = (55, 55)
         settingsClicked = False
 
-        photo = pygame.transform.scale(photo, DEFAULT_IMAGE_SIZE)
+        settingsWheel = pygame.transform.scale(photo, DEFAULT_IMAGE_SIZE)
 
         # Create button
         settingsButton = button.Button(
@@ -226,11 +226,42 @@ class Window:
             std_font, off_white, (210, 210, 210), (240, 240, 240))
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
-            #self.clicked = False
             self.settings = True
+           
             
-        self.window.blit(photo, (self.window.get_width() -
+        self.window.blit(settingsWheel, (self.window.get_width() -
                          60, self.window.get_height()-60))
+
+        #create settings close button
+    def drawSettingsClose(self):
+        std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
+        off_white = (230, 230, 230)
+        button_selected = (80, 80, 80)
+        button_unselected = (200, 200, 200)
+
+        THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+        my_file = os.path.join(THIS_FOLDER, 'closeX.png')
+
+        DEFAULT_IMAGE_SIZE = (55, 55)
+
+        closeX = pygame.image.load(my_file)
+
+        closeX = pygame.transform.scale(closeX, DEFAULT_IMAGE_SIZE)
+
+        
+
+        if self.settings:
+            settingsClose = button.Button(
+                'x', self.window.get_width() - 60, 0, 55, 55,
+                 std_font, off_white, (210, 210, 210), (240, 240, 240))
+        
+        self.window.blit(closeX, (self.window.get_width() -
+                         60, 0))
+
+        if self.clicked and settingsClose.isInButton(self.last_click_x, self.last_click_y):
+            self.closeClick = True
+            
+            
 
     def drawSettingsScreen(self):
         # nothin yet
@@ -242,6 +273,7 @@ class Window:
     def render(self):
         # Clear screen with white
         self.window.fill((255, 253, 231))
+        i = 1;
 
         # DRAW HERE (Things are rended from top to bottom, last listed is top layer)
 
@@ -255,7 +287,16 @@ class Window:
             self.drawUploadRegion()
             self.drawSolverArea()
             self.drawSettingsScreen()
-
+            self.drawSettingsClose()    
+            if self.closeClick:
+                self.settings = False;
+                self.drawUploadRegion()
+                self.drawSolverArea()
+                 
+  
+            
+                
+            
 
         # END DRAWING
 

@@ -3,7 +3,7 @@ import pygame
 
 class Button:
     # Initialize the buttons
-    def __init__(self, text: str, x: int, y: int, width: int, height: int, font: pygame.font.Font, color: tuple[3], color_selected: tuple[3], color_unselected: tuple[3]):
+    def __init__(self, text: str, x: int, y: int, width: int, height: int, font: pygame.font.Font, color: tuple[3], color_selected: tuple[3], color_unselected: tuple[0]):
         self.x = x
         self.y = y
         self.width = width
