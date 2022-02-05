@@ -227,6 +227,7 @@ class Window:
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
+            self.settings = True
             pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
                 2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
 
@@ -249,7 +250,7 @@ class Window:
             self.drawSolverArea()
             self.drawSettingButton()
         else:
-            self.drawSettingScreen()
+            self.drawSettingsScreen()
 
         # END DRAWING
 
