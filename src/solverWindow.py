@@ -6,14 +6,13 @@ import pathlib
 import button
 import fileBox
 from tkinter import filedialog
-from tkinter import * 
+from tkinter import *
 from tkinter.ttk import *
 import os
 
 
 def shortenPath(path, new_len):
     return pathlib.Path(*pathlib.Path(path).parts[-new_len:]).__str__()
-
 
 
 class Window:
@@ -38,6 +37,7 @@ class Window:
         self.window = pygame.display.set_mode([self.width, self.height])
         self.curent_add_point = 0
         self.paths = []
+        self.settings = False
 
 #
  #   def settingsWindow(self):
@@ -47,7 +47,6 @@ class Window:
      #   self.window = pygame.display.set_mode([(self.width / 3) * 2, self.height])
       #  self.curent_add_point = 0
        # self.paths = []
-
 
     # Process all events on the window
 
@@ -63,7 +62,7 @@ class Window:
                 self.last_click_x = mouse[0]
                 self.last_click_y = mouse[1]
                 self.clicked = True
-                
+
     # Used to not clutter the render method
     def drawUploadRegion(self):
         # set some frequently used colors
@@ -77,8 +76,6 @@ class Window:
         # Labels for upload area
         # Configure font
         f1 = pygame.font.Font(pygame.font.get_default_font(), 34)
-
-        
 
         # Setup label
         mLabel = f1.render('Upload Pieces', True, off_white, bg_gray)
@@ -145,45 +142,42 @@ class Window:
 
     # Render in the result of simpleSolver and Zoom button
     def drawSolverArea(self):
-        #Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
+        # Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
         button_selected = (80, 80, 80)
         button_unselected = (50, 50, 50)
 
-
-        #Implementation of Solved Puzzle Section (Puzzle solver output will display using this.)
+        # Implementation of Solved Puzzle Section (Puzzle solver output will display using this.)
         testIMG = pygame.image.load(self.resultImage)
         testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
         self.window.blit(testIMG, (300, 46))
-        
 
-        #Implementation of Zoom In Button
+        # Implementation of Zoom In Button
         zoomPlus = button.Button(
-            '+', ((self.window.get_width() / 2) + 40), 590, 50, 50, 
-                    std_font, off_white, button_selected, button_unselected)
+            '+', ((self.window.get_width() / 2) + 40), 590, 50, 50,
+            std_font, off_white, button_selected, button_unselected)
         zoomPlus.draw(self.window)
         if self.clicked and zoomPlus.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
-            self.x = self.x + 60 
+            self.x = self.x + 60
             self.y = self.y + 60
             #self.window.blit(testIMG, (300, 46))
             print("Zooming into image")
 
-        #Implementation for Zoom Out Button
+        # Implementation for Zoom Out Button
         zoomMinus = button.Button(
-            '-', (self.window.get_width() / 2) -40, 590, 50, 50, 
-                    std_font, off_white, button_selected, button_unselected)
+            '-', (self.window.get_width() / 2) - 40, 590, 50, 50,
+            std_font, off_white, button_selected, button_unselected)
         zoomMinus.draw(self.window)
         if self.clicked and zoomMinus.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
-            self.x = self.x - 60 
+            self.x = self.x - 60
             self.y = self.y - 60
             #self.window.blit(testIMG, (300, 46))
             print("Zooming out from image")
 
-        
-        #Access settings.png from current directory
+        # Access settings.png from current directory
         THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
         my_file = os.path.join(THIS_FOLDER, 'settings.png')
 
@@ -197,18 +191,52 @@ class Window:
 
         # Create button
         settingsButton = button.Button(
-            '', self.window.get_width() -60, self.window.get_height() - 60, 55, 55, 
-                    std_font, off_white, (210, 210, 210), (240,240,240))
+            '', self.window.get_width() - 60, self.window.get_height() - 60, 55, 55,
+            std_font, off_white, (210, 210, 210), (240, 240, 240))
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
-            self.clicked = False      
+            self.clicked = False
             pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
-                2* (self.window.get_width() /3), 0, self.window.get_width(), self.window.get_height()))
-        
-        self.window.blit(photo, (self.window.get_width() -60, self.window.get_height()-60))
-      
+                2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
 
-    # Render stuff to the window
+        self.window.blit(photo, (self.window.get_width() -
+                         60, self.window.get_height()-60))
+
+    def drawSettingButton(self):
+        std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
+        off_white = (230, 230, 230)
+        button_selected = (80, 80, 80)
+        button_unselected = (50, 50, 50)
+
+        # Access settings.png from current directory
+        THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+        my_file = os.path.join(THIS_FOLDER, 'settings.png')
+
+        photo = pygame.image.load(my_file)
+
+        # Scale the image to size
+        DEFAULT_IMAGE_SIZE = (55, 55)
+        settingsClicked = False
+
+        photo = pygame.transform.scale(photo, DEFAULT_IMAGE_SIZE)
+
+        # Create button
+        settingsButton = button.Button(
+            '', self.window.get_width() - 60, self.window.get_height() - 60, 55, 55,
+            std_font, off_white, (210, 210, 210), (240, 240, 240))
+        settingsButton.draw(self.window)
+        if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
+                2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
+
+        self.window.blit(photo, (self.window.get_width() -
+                         60, self.window.get_height()-60))
+
+    def drawSettingsScreen(self):
+        # nothin yet
+        x = 1
+        # Render stuff to the window
 
     def render(self):
         # Clear screen with white
@@ -216,9 +244,12 @@ class Window:
 
         # DRAW HERE (Things are rended from top to bottom, last listed is top layer)
 
-        self.drawUploadRegion()
-
-        self.drawSolverArea()
+        if not self.settings:
+            self.drawUploadRegion()
+            self.drawSolverArea()
+            self.drawSettingButton()
+        else:
+            self.drawSettingScreen()
 
         # END DRAWING
 
