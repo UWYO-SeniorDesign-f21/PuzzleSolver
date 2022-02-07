@@ -25,6 +25,8 @@ class Window:
         self.clicked = False
         self.x = 640
         self.y = 480
+        self.centerScreenx = 600
+        self.centerScreeny = 300
         self.resultImage = 'test.png'
 
     # Create a window and set its needed settings
@@ -149,31 +151,83 @@ class Window:
         # Implementation of Solved Puzzle Section (Puzzle solver output will display using this.)
         testIMG = pygame.image.load(self.resultImage)
         testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
-        self.window.blit(testIMG, (300, 46))
+        testBorder = testIMG.get_rect()
+        testBorder.center = self.centerScreenx, self.centerScreeny
+        self.window.blit(testIMG, testBorder)
+
+    def drawAllTheButtons(self):
+        # Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
+        std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
+        off_white = (230, 230, 230)
+        button_selected = (80, 80, 80)
+        button_unselected = (50, 50, 50)
 
         # Implementation of Zoom In Button
         zoomPlus = button.Button(
-            '+', ((self.window.get_width() / 2) + 40), 590, 50, 50,
+            '+', 250, 550, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         zoomPlus.draw(self.window)
         if self.clicked and zoomPlus.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
-            self.x = self.x + 60
+            self.x = self.x + 80
             self.y = self.y + 60
-            #self.window.blit(testIMG, (300, 46))
-            print("Zooming into image")
 
         # Implementation for Zoom Out Button
         zoomMinus = button.Button(
-            '-', (self.window.get_width() / 2) - 40, 590, 50, 50,
+            '-', (250), 600, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         zoomMinus.draw(self.window)
         if self.clicked and zoomMinus.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
-            self.x = self.x - 60
-            self.y = self.y - 60
+            if (self.x - 120 <= 0 or self.y - 120 <= 0):
+                print ("Cannot zoom out further")
+                self.x = 60
+                self.y = 60
+            else :
+                self.x = self.x - 80
+                self.y = self.y - 60
+
+        #Right Button Implementation
+        goRight = button.Button(
+            u"->",  160, 275, 50, 50,
+            std_font, off_white, button_selected, button_unselected)
+        goRight.draw(self.window)
+        if self.clicked and goRight.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            self.centerScreenx = self.centerScreenx + 50
             #self.window.blit(testIMG, (300, 46))
-            print("Zooming out from image")
+            print("Panning to Right?")
+        
+        #Left Button Implementation
+        goLeft = button.Button(
+            u"<-", 40, 275, 50, 50,
+            std_font, off_white, button_selected, button_unselected)
+        goLeft.draw(self.window)
+        if self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            self.centerScreenx = self.centerScreenx - 50
+            #self.window.blit(testIMG, (300, 46))
+            print("Panning to Left?")
+        
+        #Up Button Implementation
+        goUp = button.Button(
+            "U", (100), 240, 50, 50,
+            std_font, off_white, button_selected, button_unselected)
+        goUp.draw(self.window)
+        if self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            self.centerScreeny = self.centerScreeny - 50
+            print("Panning to Left?")
+
+        # Implements Down Button
+        goDown = button.Button(
+            u"D", 100, 300, 50, 50,
+            std_font, off_white, button_selected, button_unselected)
+        goDown.draw(self.window)
+        if self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y):
+            self.clicked = False
+            self.centerScreeny = self.centerScreeny + 50
+            print("Panning to Left?")
 
         # Access settings.png from current directory
         THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -274,14 +328,15 @@ class Window:
         # DRAW HERE (Things are rended from top to bottom, last listed is top layer)
 
         if not self.settings:
-            self.drawUploadRegion()
             self.drawSolverArea()
+            self.drawUploadRegion()
+            self.drawAllTheButtons()
             self.drawSettingsButton()
        
            
         else:
-            self.drawUploadRegion()
             self.drawSolverArea()
+            self.drawUploadRegion()
             self.drawSettingsScreen()
             self.drawSettingsClose()    
             if self.closeClick:
@@ -311,6 +366,7 @@ class Window:
             now = time.time_ns()
             delta = delta + ((now - last) / timePerFrame)
             last = now
+
             if delta >= 1:
                 # Call update and render if on time
                 self.update()
