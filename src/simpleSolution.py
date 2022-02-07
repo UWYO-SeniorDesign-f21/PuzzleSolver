@@ -76,7 +76,7 @@ def main():
     #solver = getSolutionRandomTrials(20, collection, dims, show_solutions=True, time=True)
     #solver = getSolutionBestEdge(collection, dims)
     #solver = getSolutionAllPieces(collection, dims, show_solutions=True, time=True)
-    solver = getSolutionGenetic(30, 50, collection, dims, show_solutions=True, time=True)
+    solver = getSolutionGenetic(30, 50, collection, dims, show_solutions=False, time=True)
     print(f'score: {solver.score}')
 
     solution_image = solver.getSolutionImage()
@@ -134,7 +134,10 @@ def getSolutionGenetic(gen_size, num_gens, collection, dims, show_solutions=Fals
             if time:
                 start = timer()
             parent1, parent2 = random.choices(solutions, weights=getWeights(scores), k=2)
-            solver = parent1.crossover(parent2)
+            if parent1.score == parent2.score:
+                solver = parent1
+            else:
+                solver = parent1.crossover(parent2)
             new_solutions.append(solver)
             print(f'gen {gen} solution {len(new_solutions)}')
             print(f'p1 score: {parent1.score}, p2 score: {parent2.score}, c score: {solver.score}')
