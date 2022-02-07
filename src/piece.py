@@ -23,7 +23,7 @@ class Piece:
         # print(label)
         self.image = image
         self.contour = contour
-        self.corners = findCorners(self.contour)
+        self.corners = findCorners(self.contour, image)
         self.edges = findEdges(self.contour, self.corners, self.image)
         self.type = findType(self.edges)
 
@@ -87,24 +87,34 @@ class Piece:
         return final_image
 
 
-def findCorners(contour):
+def findCorners(contour, image):
+
+    x1 = np.min(contour[:,:,0])
+    x2 = np.max(contour[:,:,0])
+    y1 = np.min(contour[:,:,1])
+    y2 = np.max(contour[:,:,1])
+
+
+    dist = 10
+    sharpdist = 15
+    prominence = 0
 
     center = np.mean(contour[:,0], axis=0)
     centered_contour = contour - center
 
     rho, phi = cart2pol(centered_contour[:,0,0], centered_contour[:,0,1])
     rho = np.concatenate((rho[-10:], rho))
-    peaks, _ = find_peaks(rho, distance=50)
+    peaks, _ = find_peaks(rho, distance=dist, prominence=prominence)
     rho = rho[10:]
     peaks -= 10
     if np.any(peaks < 0):
-        if not np.any(peaks > len(rho) - 50):
+        if not np.any(peaks > len(rho) - dist):
             peaks[np.where(peaks < 0)] += len(phi)
         else:
             peaks = peaks[np.where(peaks >= 0)]
 
     # delete potential duplicate peaks on the extreme ends (as 360 degrees is equal to 0 degrees)
-    if (peaks[0] + len(rho) - peaks[-1] <= 50):
+    if (peaks[0] + len(rho) - peaks[-1] <= dist):
         if rho[peaks[0]] < rho[peaks[-1]]:
             peaks = peaks[1:]
         else:
@@ -116,24 +126,42 @@ def findCorners(contour):
     # find the differences between the peak height and the points on either side
     # normalize so that the peak height is treated to be the same as rho_max
     # remove peaks that are not higher than the points on the left and right
-    diff_left = rho_max - rho_max * rho[(peaks-15) % len(rho)] / rho[peaks]
-    diff_left[np.where(diff_left < 2)] = 0
-    diff_right = rho_max - rho_max * rho[(peaks+15) % len(rho)] / rho[peaks]
-    diff_right[np.where(diff_right < 2)] = 0
+    diff_left = rho_max - rho_max * rho[(peaks-sharpdist) % len(rho)] / rho[peaks]
+    #diff_left[np.where(diff_left < 0)] = 0
+    diff_right = rho_max - rho_max * rho[(peaks+sharpdist) % len(rho)] / rho[peaks]
+    #diff_right[np.where(diff_right < 0)] = 0
 
     # find a metric for sharpness by multiplying these values
-    sharpness = diff_left * diff_right
+    sharpness = np.min(np.vstack((diff_left, diff_right)), axis=0)
+    peaks = peaks[np.where(sharpness > 0)]
+    sharpness = sharpness[np.where(sharpness > 0)]
 
-    # find the indeces of the four sharpest peaks, treat as corners
-    corner_peaks = np.argsort(sharpness)[-4:]
+    # image2 = np.copy(image)
 
+    # for peak in peaks:
+    #     corner = contour[peak][0]
+    #     cv2.circle(image2, (int(corner[0]), int(corner[1])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+    # cv2.imshow('best peaks', image2[y1-10:y2+10, x1-10:x2+10])
+    # cv2.waitKey(1)
+
+    # plt.plot(rho)
+    # plt.plot(peaks, rho[peaks], 'x')
+    # plt.show()
+    # print(peaks, sharpness)
     # reduce the peaks to be just the corners
-    sharpness = sharpness[corner_peaks]
-    peaks = peaks[corner_peaks]
-
+    peaks = pickBestPeaks( contour, peaks, image, sharpness )
+    # print(peaks)
     # sort in increasing order based on phi (clockwise)
     order = np.argsort([phi[peaks]])
     peaks = peaks[order][0]
+
+    # image2 = np.copy(image)
+
+    # for peak in peaks:
+    #     corner = contour[peak][0]
+    #     cv2.circle(image2, (int(corner[0]), int(corner[1])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+    # cv2.imshow('best peaks', image2[y1-10:y2+10, x1-10:x2+10])
+    # cv2.waitKey()
 
     # plt.plot(rho)
     # plt.plot(peaks, rho[peaks], 'x')
@@ -151,6 +179,69 @@ def findCorners(contour):
     corners[:len(peaks),2] = corners_y
 
     return corners
+
+def pickBestPeaks( contour, peaks, img, sharpness ):
+
+    # want the collection of peaks that maximizes area within the contour covered.
+
+    img3 = np.zeros_like(img)
+    cv2.drawContours(img3, [contour], -1, (255,255,255), thickness=-1)
+
+    maxScore = -1
+    maxPeaks = [0, 1, 2, 3]
+    for i in range(len(peaks)):
+        peak1 = peaks[i]
+        for j in range(i+1, len(peaks)):
+            peak2 = peaks[j]
+            for k in range(j+1, len(peaks)):
+                peak3 = peaks[k]
+                for l in range(k+1, len(peaks)):
+                    peak4 = peaks[l]
+                    #img2 = np.zeros_like(img)
+                    point1 = [contour[peak1][0][0],  contour[peak1][0][1]]
+                    point2 = [contour[peak2][0][0],  contour[peak2][0][1]]
+                    point3 = [contour[peak3][0][0],  contour[peak3][0][1]]
+                    point4 = [contour[peak4][0][0],  contour[peak4][0][1]]
+
+                    points = np.array([point1, point2, point3, point4])
+                    #cv2.fillPoly(img2, pts=[points], color =(255,255,255))
+
+                    #img4 = cv2.bitwise_and(img2, img3)
+                    #img5 = cv2.bitwise_and(img2, cv2.bitwise_not(img3))
+
+                    #area = np.sum(img4 == 255)
+                    #badArea = np.sum(img5 == 255)
+
+                    # score = area - badArea
+
+                    #img6 = np.zeros_like(img)
+
+                    rect = cv2.minAreaRect(points)
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+
+                    # cv2.fillPoly(img6, pts=[box], color=(255,255,255))
+                    # cv2.imshow('bees', img7[y1:y2, x1:x2])
+                    # cv2.waitKey(0)
+
+                    area_rect = cv2.contourArea(box)
+                    area_points = cv2.contourArea(np.array([contour[peak1], contour[peak2], contour[peak3], contour[peak4]]))
+
+                    # maximum when points form perfect rectangle
+                    if area_rect > 0:
+                        score_rect = (area_points / area_rect)
+                    else:
+                        score_rect = 0
+                    #print(area_points, area_rect)
+                    score_sharp = sharpness[i] + sharpness[j] + sharpness[k] + sharpness[l]
+                    #print(score)
+                    score = score_rect * area_points * score_sharp
+
+                    if score > maxScore:
+                        maxPeaks = [peak1, peak2, peak3, peak4]
+                        maxScore = score
+
+    return np.array(maxPeaks)
 
 def findEdges(contour, corners, image):
     # init edges to empty

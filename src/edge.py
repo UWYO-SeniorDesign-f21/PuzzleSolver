@@ -47,9 +47,8 @@ class Edge:
             if (self.right_neighbor.label == 'flat') != (other_edge.left_neighbor.label == 'flat'):
                 return float('inf')
 
-            
-        if self.label == other_edge.label:
-            return float('inf')
+        # if self.label == other_edge.label:
+        #     return float('inf')
 
         # find the shorter and the longer edge
         if len(self.contour) < len(other_edge.contour):
@@ -123,22 +122,28 @@ def findLabel(distance_arr):
 def findColorArray(contour, image):
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     image_gr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    pixels_in = range(6,10) # range of pixels from edge to average over
+    pixels_in = range(8,10) # range of pixels from edge to average over
 
     # slope of perpendicular lines at each point on the contour
     perp_slopes = np.empty_like(contour[1:-1,0])
 
     # use the current, next, and previous points to find slope of line perpindicular at each point
-    for i, curr_point in enumerate(contour[1:-1,0]):
-        prev_point = contour[i][0]
-        next_point = contour[i+2][0]
+    for i, curr_point in enumerate(contour[:,0]):
+        if i < 1 or i > len(contour) - 2:
+            continue
+        prev_point = contour[i-1][0]
+        next_point = contour[i+1][0]
         # def of line perpinducular to another
         dx = -next_point[0] + prev_point[0]
         dy = -next_point[1] + prev_point[1]
-        perp_slopes[i] = [dy, -dx]
+        perp_slopes[i-1] = [dy, -dx]
+        if dy == 0 and dx == 0:
+            perp_slopes[i-1] = perp_slopes[i-2]
 
     # ensure each slope has magnitude 1
-    perp_slopes = perp_slopes / np.linalg.norm(perp_slopes, axis=1)[:,np.newaxis]
+
+    norm = np.linalg.norm(perp_slopes, axis=1)[:,np.newaxis]
+    perp_slopes = perp_slopes / norm
     # init color_arr
     color_arr = np.zeros((len(perp_slopes), 3))
     # for each slope, average the colors from each point along the slope

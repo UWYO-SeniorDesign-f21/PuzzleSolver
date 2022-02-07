@@ -51,6 +51,9 @@ class PieceCollection:
             piece_image = piece.getSubimage(0, with_details=with_details)
             image_dict[piece] = piece_image
 
+            cv2.imshow('piece image', piece.getSubimage(0, with_details=False))
+            cv2.waitKey()
+
             piece_image_size = max(piece_image.shape)
             if piece_image_size > max_size:
                 max_size = piece_image_size
@@ -113,7 +116,7 @@ def showLabels( img, contours, labels ):
 
         
 def getContours(image, num_pieces):
-    color_range = [10, 15, 30]
+    color_range = [10, 25, 30]
     # convert the image to the hsv color spectrum
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -132,10 +135,9 @@ def getContours(image, num_pieces):
     #cv2.waitKey()
 
     # dilate the mask to get a slightly better fit
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-    #mask = cv2.erode(mask, kernel, iterations=2)
-    mask = cv2.dilate(mask, kernel, iterations=5)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     mask = cv2.erode(mask, kernel, iterations=2)
+    mask = cv2.dilate(mask, kernel, iterations=5)
 
     #find contours in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -157,21 +159,33 @@ def getLabels(contours, image_num):
     return labels
 if __name__ == '__main__':
     collection = PieceCollection()
-    collection.addPieces('StarWarsPuzzle01.png', 6)
-    collection.addPieces('StarWarsPuzzle02.png', 6)
-    collection.addPieces('StarWarsPuzzle03.png', 6)
-    collection.addPieces('StarWarsPuzzle04.png', 6)
-    collection.addPieces('StarWarsPuzzle05.png', 6)
-    collection.addPieces('StarWarsPuzzle06.png', 6)
-    collection.addPieces('StarWarsPuzzle07.png', 6)
-    collection.addPieces('StarWarsPuzzle08.png', 6)
+    # collection.addPieces('StarWarsPuzzle01.png', 6)
+    # collection.addPieces('StarWarsPuzzle02.png', 6)
+    # collection.addPieces('StarWarsPuzzle03.png', 6)
+    # collection.addPieces('StarWarsPuzzle04.png', 6)
+    # collection.addPieces('StarWarsPuzzle05.png', 6)
+    # collection.addPieces('StarWarsPuzzle06.png', 6)
+    # collection.addPieces('StarWarsPuzzle07.png', 6)
+    # collection.addPieces('StarWarsPuzzle08.png', 6)
 
-    # collection.addPieces('pokemon_puzzle_1_01.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_02.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_03.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_04.png', 20)
-    # collection.addPieces('pokemon_puzzle_1_05.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_01.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_02.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_03.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_04.png', 20)
+    # collection.addPieces('pokemon_puzzle_2_05.png', 20)
 
-    collection.showPieceImages()
+    collection.addPieces('300_01.png', 30)
+    collection.addPieces('300_02.png', 30)
+    collection.addPieces('300_03.png', 30)
+    collection.addPieces('300_04.png', 30)
+    collection.addPieces('300_05.png', 30)
+    collection.addPieces('300_06.png', 30)
+    collection.addPieces('300_07.png', 30)
+    collection.addPieces('300_08.png', 30)
+    collection.addPieces('300_09.png', 30)
+    collection.addPieces('300_10.png', 30)
+
+
+    #collection.showPieceImages()
     all_pieces = collection.getAllPiecesImage(with_details=True)
-    cv2.imwrite('starwars_puzzle_all_pieces.png', all_pieces)
+    cv2.imwrite('starwars_all_pieces.png', all_pieces)

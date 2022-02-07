@@ -21,16 +21,16 @@ def main():
     # collection.addPieces('StarWarsPuzzle07.png', 6)
     # collection.addPieces('StarWarsPuzzle08.png', 6)
 
-    puzzle_name = 'pokemon1'
-    dims = (14.7, 10.5)
+    # puzzle_name = 'pokemon1'
+    # dims = (14.7, 10.5)
 
-    # add pieces
-    collection = PieceCollection()
-    collection.addPieces('pokemon_puzzle_1_01.png', 20)
-    collection.addPieces('pokemon_puzzle_1_02.png', 20)
-    collection.addPieces('pokemon_puzzle_1_03.png', 20)
-    collection.addPieces('pokemon_puzzle_1_04.png', 20)
-    collection.addPieces('pokemon_puzzle_1_05.png', 20)
+    # # add pieces
+    # collection = PieceCollection()
+    # collection.addPieces('pokemon_puzzle_1_01.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_02.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_03.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_04.png', 20)
+    # collection.addPieces('pokemon_puzzle_1_05.png', 20)
 
     # puzzle_name = 'pokemon2'
     # dims = (15, 11)
@@ -42,6 +42,22 @@ def main():
     # collection.addPieces('pokemon_puzzle_2_03.png', 20)
     # collection.addPieces('pokemon_puzzle_2_04.png', 20)
     # collection.addPieces('pokemon_puzzle_2_05.png', 20)
+
+    puzzle_name = '300'
+    dims = (21.25, 15)
+
+    # add pieces
+    collection = PieceCollection()
+    collection.addPieces('300_01.png', 30)
+    collection.addPieces('300_02.png', 30)
+    collection.addPieces('300_03.png', 30)
+    collection.addPieces('300_04.png', 30)
+    collection.addPieces('300_05.png', 30)
+    collection.addPieces('300_06.png', 30)
+    collection.addPieces('300_07.png', 30)
+    collection.addPieces('300_08.png', 30)
+    collection.addPieces('300_09.png', 30)
+    collection.addPieces('300_10.png', 30)
 
     # distance btw all edges
     dist_dict = getDistDict(collection.pieces)
@@ -59,9 +75,9 @@ def main():
 
     # get that solution image :O
     
-    solver = getSolutionRandomTrials(20, collection, dims, dist_dict, time=True)
+    #solver = getSolutionRandomTrials(20, collection, dims, dist_dict, show_solutions=True, time=True)
     #solver = getSolutionBestEdge(collection, dims, dist_dict)
-    #solver = getSolutionAllPieces(collection, dims, dist_dict, time=True)
+    solver = getSolutionAllPieces(collection, dims, dist_dict, show_solutions=True, time=True)
     print(f'score: {solver.score}')
 
     solution_image = solver.getSolutionImage()
@@ -122,6 +138,7 @@ def getSolutionAllPieces(collection, dimensions, dist_dict, show_solutions=False
             h, w, _ = solution_image.shape
             cv2.imshow(f'solution', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
             cv2.waitKey(1)
+            cv2.imwrite(f'solution_image_{i}_score_{solver.score}.png', solution_image)
     if time:
         print(f'{len(collection.pieces)} solutions found in {total_time:.2f} seconds')
     return min_solver
