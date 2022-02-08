@@ -76,7 +76,7 @@ def main():
     #solver = getSolutionRandomTrials(20, collection, dims, show_solutions=True, time=True)
     #solver = getSolutionBestEdge(collection, dims)
     #solver = getSolutionAllPieces(collection, dims, show_solutions=True, time=True)
-    solver = getSolutionGenetic(30, 50, collection, dims, show_solutions=False, time=True)
+    solver = getSolutionGenetic(30, 8, collection, dims, show_solutions=False, time=True)
     print(f'score: {solver.score}')
 
     solution_image = solver.getSolutionImage()
@@ -117,7 +117,7 @@ def getSolutionGenetic(gen_size, num_gens, collection, dims, show_solutions=Fals
     h, w, _ = solution_image.shape
     cv2.imshow('best solution gen 0', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
     cv2.waitKey(1)
-    cv2.imwrite('best solution gen 0.png', solution_image)   
+    # cv2.imwrite('best solution gen 0.png', solution_image)   
     if time:
         total_time += gen_time
         print(f'total time gen 0: {gen_time}')
@@ -134,7 +134,7 @@ def getSolutionGenetic(gen_size, num_gens, collection, dims, show_solutions=Fals
             if time:
                 start = timer()
             parent1, parent2 = random.choices(solutions, weights=getWeights(scores), k=2)
-            if parent1.score == parent2.score:
+            if abs(parent1.score - parent2.score) < 1:
                 solver = parent1
             else:
                 solver = parent1.crossover(parent2)
@@ -159,7 +159,7 @@ def getSolutionGenetic(gen_size, num_gens, collection, dims, show_solutions=Fals
         h, w, _ = solution_image.shape
         cv2.imshow(f'best solution gen {gen}', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
         cv2.waitKey(1)
-        cv2.imwrite(f'best_solution_gen_{gen}.png', solution_image)
+        # cv2.imwrite(f'best_solution_gen_{gen}.png', solution_image)
         solutions = new_solutions
 
     print(f'\ntotal time: {total_time}\n')
@@ -243,12 +243,14 @@ class PuzzleSolver:
         self.empty_edge_dist = empty_edge_dist
         self.cutoff = cutoff
 
+        self.all_piece_dims = [0,0,0,0]
+        self.middle_piece_dims = None
+
     def crossover(self, other):
         common_edges = self.edges.intersection(other.edges)
         new_solution = PuzzleSolver(self.pieces, self.puzzle_dims, self.dist_dict, self.empty_edge_dist)
         new_solution.solvePuzzle(random_start=True, include_edges=common_edges)
         return new_solution
-
 
     def solvePuzzle(self, random_start=False, show_solve=False, start=None, include_edges=set()):
         if not random_start and start:
@@ -268,6 +270,9 @@ class PuzzleSolver:
         remaining_pieces.remove(piece1)
 
         self.info_dict[piece1] = ((0, 0), edge1)
+
+        if piece1.type == 'middle':
+            self.middle_piece_dims = [0,0,0,0]
 
         kernel = set() # group of possible edges to extend off of
         kernel_num_edges = {}
@@ -333,9 +338,11 @@ class PuzzleSolver:
                         edges_to_include.append(edge)
             # get the locations of the left, right, top, and bottom edges of the puzzle if applicable
             self.updateEdges(piece2, piece2_loc, piece2_edge_up)
+            self.updatePieceDims(piece2, piece2_loc)
 
             if show_solve:
                 print(len(remaining_pieces), len(kernel))
+                print(self.all_piece_dims, self.middle_piece_dims)
                 image = self.getSolutionImage(with_details=True)
                 h, w, _  = image.shape
                 cv2.imshow(f'solution', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
@@ -352,10 +359,9 @@ class PuzzleSolver:
         # min_buddy_adj = None
         # min_buddy_dist = float('inf')
         # loop over possible edges to extend and possible edges to connect to them
-        for num_adj in [4, 3, 2, 1]:
+        for num_adj in [2, 1]:
             kernel_num_adj = [key for key in kernel if kernel_num_edges.get(key) == num_adj]
             for piece1, edge1 in kernel_num_adj:
-                has_possible_pieces = False # could be used to remove excess sides from kernel but isn't -_-
                 piece1_loc, piece1_edge_up = self.info_dict[piece1]
                 for piece2 in remaining_pieces:
                     for edge2 in range(4):
@@ -367,24 +373,26 @@ class PuzzleSolver:
                         #buddies = True
                         for adj_edge in adj_edges:
                             adj_dist = self.dist_dict[(adj_edge[0], adj_edge[1])][(adj_edge[2], adj_edge[3])]
-                            if adj_dist == float('inf') or not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
-                                valid = False
-                                break
                             #if not adj_dist == min(self.dist_dict[(adj_edge[2], adj_edge[3])].values()) or not adj_dist == min(self.dist_dict[(adj_edge[0], adj_edge[1])].values()):
                             #    buddies = False
                             dist += adj_dist
+                        if dist >= min_dist:
+                            continue
+                        for adj_edge in adj_edges:
+                            if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
+                                valid = False
+                                break   
                         if not valid:
-                            continue                        
+                            continue                 
                         # if buddies and dist < min_buddy_dist:
                         #     min_buddy_dist = dist
                         #     min_buddy = (piece1, edge1, piece2, edge2)
                         #     min_buddy_adj = adj_edges
-                        has_possible_pieces = True
+
                         # update minimum distance for that number of adj edges
-                        if dist < min_dist:
-                            min_dist = dist
-                            min_edge = (piece1, edge1, piece2, edge2)
-                            min_adj = adj_edges
+                        min_dist = dist
+                        min_edge = (piece1, edge1, piece2, edge2)
+                        min_adj = adj_edges
             if not min_edge is None:
                 break
         #if min_buddy is None:
@@ -400,7 +408,7 @@ class PuzzleSolver:
         # min_buddy = None
         # min_buddy_adj = None
         # min_buddy_dist = float('inf')
-        for num_adj in [4, 3, 2, 1]:
+        for num_adj in [2, 1]:
             edges_num_adj = [edge for edge in edges_to_include if kernel_num_edges.get((edge[0], edge[1])) == num_adj]
             # loop over possible edges to extend and possible edges to connect to them
             for edge in edges_to_include:
@@ -409,19 +417,24 @@ class PuzzleSolver:
                 adj_edges = self.getAdjacentEdges(piece1, edge1, piece2, edge2)
                 dist = 0
                 # check if each edge is valid, find the distance
-                valid = True
                 #buddies = True
+                valid = True
                 for adj_edge in adj_edges:
                     if not adj_edge in edges_to_include:
                         valid=False
                         break
                     adj_dist = self.dist_dict[(adj_edge[0], adj_edge[1])][(adj_edge[2], adj_edge[3])]
-                    if adj_dist == float('inf') or not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
-                        valid = False
-                        break
                     # if not adj_dist == min(self.dist_dict[(adj_edge[2], adj_edge[3])].values()) or not adj_dist == min(self.dist_dict[(adj_edge[0], adj_edge[1])].values()):
                     #     buddies = False
                     dist += adj_dist
+
+                if dist == float('inf') or dist >= min_dist or not valid:
+                    break
+                for adj_edge in adj_edges:
+                    if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3]):
+                        valid = False
+                        break
+
                 if not valid:
                     continue
                 # if buddies and dist < min_buddy_dist:
@@ -429,10 +442,9 @@ class PuzzleSolver:
                 #     min_buddy = (piece1, edge1, piece2, edge2)
                 #     min_buddy_adj = adj_edges
                 # update minimum distance for that number of adj edges
-                if dist < min_dist:
-                    min_dist = dist
-                    min_edge = (piece1, edge1, piece2, edge2)
-                    min_adj = adj_edges
+                min_dist = dist
+                min_edge = (piece1, edge1, piece2, edge2)
+                min_adj = adj_edges
             if not min_dist is None:
                 break
         # if min_buddy is None:
@@ -493,18 +505,35 @@ class PuzzleSolver:
                     else:
                         self.left_edge = piece_loc[0]
 
+    def updatePieceDims(self, piece, piece_loc):
+        min_x, max_x, min_y, max_y = self.all_piece_dims
+        new_dims = (min(piece_loc[0], min_x), max(piece_loc[0], max_x), min(piece_loc[1], min_y), max(piece_loc[1], max_y))
+
+        self.all_piece_dims = new_dims
+
+        if piece.type == 'middle':
+            if self.middle_piece_dims is None:
+                self.middle_piece_dims = [piece_loc[0], piece_loc[0], piece_loc[1], piece_loc[1]]
+            else:
+                middle_min_x, middle_max_x, middle_min_y, middle_max_y = self.middle_piece_dims
+                new_dims = (min(piece_loc[0], middle_min_x), max(piece_loc[0], middle_max_x),
+                            min(piece_loc[1], middle_min_y), max(piece_loc[1], middle_max_y))
+                self.middle_piece_dims = new_dims
+        
+
     # checks if a piece would break any rules of a consistent, correctly put together puzzle if it were added
-    def isValid(self, piece1, edge1, piece2, edge2, check_pos=True):
+    def isValid(self, piece1, edge1, piece2, edge2):
         # if there is already a piece there, not valid
         piece2_loc, piece2_edge_up = getPieceInfo(piece1, edge1, edge2, self.info_dict)
         if self.position_dict.get(piece2_loc):
             return False
 
         # find width, height with and without the piece
-        min_x = min(self.position_dict.keys(), key=lambda x:x[0])[0]
-        min_y = min(self.position_dict.keys(), key=lambda x:x[1])[1]
-        max_x = max(self.position_dict.keys(), key=lambda x:x[0])[0]
-        max_y = max(self.position_dict.keys(), key=lambda x:x[1])[1]
+        # min_x = min(self.position_dict.keys(), key=lambda x:x[0])[0]
+        # min_y = min(self.position_dict.keys(), key=lambda x:x[1])[1]
+        # max_x = max(self.position_dict.keys(), key=lambda x:x[0])[0]
+        # max_y = max(self.position_dict.keys(), key=lambda x:x[1])[1]
+        min_x, max_x, min_y, max_y = self.all_piece_dims
 
         min_x_with = min(min_x, piece2_loc[0])
         min_y_with = min(min_y, piece2_loc[1])
@@ -518,68 +547,69 @@ class PuzzleSolver:
         height = max_y_with - min_y_with + 1
 
         # filter out middle pieces from pieces already placed
-        middle_pieces = [key for key in self.position_dict.keys() if self.position_dict[key][0].type == 'middle']
-        if len(middle_pieces) > 0:
+        # middle_pieces = [key for key in self.position_dict.keys() if self.position_dict[key][0].type == 'middle']
+        # if len(middle_pieces) > 0:
             # find dimensions of middle pieces
-            min_x_middle = min(middle_pieces, key=lambda x:x[0])[0]
-            min_y_middle = min(middle_pieces, key=lambda x:x[1])[1]
-            max_x_middle = max(middle_pieces, key=lambda x:x[0])[0]
-            max_y_middle = max(middle_pieces, key=lambda x:x[1])[1]
+        # min_x_middle = min(middle_pieces, key=lambda x:x[0])[0]
+        # min_y_middle = min(middle_pieces, key=lambda x:x[1])[1]
+        # max_x_middle = max(middle_pieces, key=lambda x:x[0])[0]
+        # max_y_middle = max(middle_pieces, key=lambda x:x[1])[1]
+        if not self.middle_piece_dims is None:
+            min_x_middle, max_x_middle, min_y_middle, max_y_middle = self.middle_piece_dims
 
             middle_width = max_x_middle - min_x_middle + 1
             middle_height = max_y_middle - min_y_middle + 1
 
-            # update edges of puzzle according to rules of middle piece dimensions
+                # update edges of puzzle according to rules of middle piece dimensions
             if middle_width == max(self.puzzle_dims) or (middle_width == min(self.puzzle_dims) and middle_height > min(self.puzzle_dims)):
-                self.left_edge = self.min_x_middle - 1
-                self.right_edge = self.max_x_middle + 1
+                self.left_edge = min_x_middle - 1
+                self.right_edge = max_x_middle + 1
 
             if middle_height == max(self.puzzle_dims) or  (middle_height == min(self.puzzle_dims) and middle_width > min(self.puzzle_dims)):
-                self.top_edge = self.min_y_middle - 1
-                self.bottom_edge = self.max_y_middle + 1
+                self.top_edge = min_y_middle - 1
+                self.bottom_edge = max_y_middle + 1
 
-            if piece2.type == 'middle':
-                # update middle width if this piece extends current bounds
-                if piece2_loc[0] < min_x_middle:
-                    middle_width += 1
-                elif piece2_loc[0] > max_x_middle:
-                    middle_width += 1
-                if piece2_loc[1] < min_y_middle:
-                    middle_height += 1
-                elif piece2_loc[1] > max_y_middle:
-                    middle_height += 1
+                if piece2.type == 'middle':
+                    # update middle width if this piece extends current bounds
+                    if piece2_loc[0] < min_x_middle:
+                        middle_width += 1
+                    elif piece2_loc[0] > max_x_middle:
+                        middle_width += 1
+                    if piece2_loc[1] < min_y_middle:
+                        middle_height += 1
+                    elif piece2_loc[1] > max_y_middle:
+                        middle_height += 1
 
-                # if the middle piece is on the side of the puzzle, bad
-                if self.right_edge == piece2_loc[0]:
-                    return False
-                elif self.left_edge == piece2_loc[0]:
-                    return False
+                    # if the middle piece is on the side of the puzzle, bad
+                    if self.right_edge == piece2_loc[0]:
+                        return False
+                    elif self.left_edge == piece2_loc[0]:
+                        return False
 
-                if self.top_edge == piece2_loc[1]:
-                    return False
-                elif self.bottom_edge == piece2_loc[1]:
-                    return False
+                    if self.top_edge == piece2_loc[1]:
+                        return False
+                    elif self.bottom_edge == piece2_loc[1]:
+                        return False
 
-                # if the middle piece extends the bounds of possible middle pieces too far, bad :(
-                if max(middle_width, middle_height) > max(self.puzzle_dims) - 2:
-                    return False
-                if min(middle_width, middle_height) > min(self.puzzle_dims) - 2:
-                    return False
+                    # if the middle piece extends the bounds of possible middle pieces too far, bad :(
+                    if max(middle_width, middle_height) > max(self.puzzle_dims) - 2:
+                        return False
+                    if min(middle_width, middle_height) > min(self.puzzle_dims) - 2:
+                        return False
 
-                # if the middle piece extends the bounds, i.e. one edge is not defined, must be 1 less
-                if max(width, height) > max(width_without, height_without) and max(width, height) > max(self.puzzle_dims) - 1:
-                    return False
-                elif min(width, height) > min(width_without, height_without) and min(width, height) > min(self.puzzle_dims) - 1:
-                    return False
+                    # if the middle piece extends the bounds, i.e. one edge is not defined, must be 1 less
+                    if max(width, height) > max(width_without, height_without) and max(width, height) > max(self.puzzle_dims) - 1:
+                        return False
+                    elif min(width, height) > min(width_without, height_without) and min(width, height) > min(self.puzzle_dims) - 1:
+                        return False
 
-                # if the width and height are too big, bad
-                if max(width, height) > max(self.puzzle_dims):
-                    return False
-                if min(width, height) > min(self.puzzle_dims):
-                    return False
+                    # if the width and height are too big, bad
+                    if max(width, height) > max(self.puzzle_dims):
+                        return False
+                    if min(width, height) > min(self.puzzle_dims):
+                        return False
         else:
             middle_width = middle_height = 0
-
 
         if piece2.type == 'side' or piece2.type == 'corner':
             # once again, if width, height too big, bad
