@@ -82,21 +82,113 @@ class Piece:
         # if the intended edge will actually be on the bottom
         if( c2[0] < c1[0] or (c2[0] == c1[0] and c2[1] < c1[1])): # need to rotate more!
             angle = angle + 180 # flip 180 degrees
+
         final_image = imutils.rotate(image_crop, angle) # rotate the image
 
         return final_image
 
+    def getSubimage2(self, edge_up, with_details=False):
+
+        # get the corners on either end of the piece to be displayed on top
+        c1 = self.corners[edge_up - 1][1:]
+        c2 = self.corners[edge_up][1:]
+
+        # get the slope of the line to be on top
+        delta = c1 - c2
+        dx, dy = delta[0], delta[1]
+
+        # if the line is vertical, rotate 90 degrees
+        if dx == 0:
+            angle = 90
+        else: # otherwise, rotate arctan (change in y / change in x) degrees
+            angle = math.degrees(math.atan(dy / dx))
+
+        # find a circle that encloses the piece in the image
+        (x,y), r = cv2.minEnclosingCircle(self.contour)
+        r = r + 1
+        image = self.image[int(y-r):int(y+r), int(x-r):int(x+r)]
+        adj_contour = self.contour - [int(x-r), int(y-r)]
+
+        # isolate the piece in the image
+        mask = np.zeros_like(image)
+        cv2.drawContours(mask, [adj_contour], -1, (255,255,255), thickness=-1)
+        image_piece_isolated = cv2.bitwise_and(mask, image)
+
+        # if the intended edge will actually be on the bottom
+        if( c2[0] < c1[0] or (c2[0] == c1[0] and c2[1] < c1[1])): # need to rotate more!
+            angle = angle + 180 # flip 180 degrees
+
+        final_image = imutils.rotate(image_piece_isolated, angle) # rotate the image
+
+        return final_image, (x, y), r, angle
+
+# self on the left, piece2 on the right ::: 
+def combineSubimagesRight(piece1, edge_up_1, piece2, edge_up_2):
+    piece1_subimage, c1, r1, a1 = piece1.getSubimage2(edge_up=(edge_up_1-1)%4)
+    piece1_adj_corners = getAdjustedCorners(piece1, c1, r1, a1)
+    h1, w1, _ = piece1_subimage.shape
+
+    top_right_corner = None
+    for x, y in piece1_adj_corners:
+        if (x - r1) > 0 and (y - r1) < 0:
+            top_right_corner = (x, y)
+        cv2.circle(piece1_subimage, (x, y), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+
+    piece2_subimage, c2, r2, a2 = piece2.getSubimage2(edge_up=(edge_up_2+1)%4)
+    piece2_adj_corners = getAdjustedCorners(piece2, c2, r2, a2)
+    h2, w2, _ = piece2_subimage.shape
+
+    top_left_corner = None
+    for i, corner in enumerate(piece2_adj_corners):
+        x, y = corner
+        if (x - r2) < 0 and (y - r2) < 0:
+            top_left_corner = (x, y)
+        cv2.circle(piece2_subimage, (x, y), 10, (255, 0, 255), thickness=-1, lineType=cv2.FILLED)
+
+    # now just want the top corners to line up
+    start_pos = top_right_corner[0] - top_left_corner[0]
+    start_pos_y_p1 = 0
+    start_pos_y_p2 = 0
+    diff_y = top_right_corner[1] - top_left_corner[1]
+    if diff_y < 0:
+        start_pos_y_p1 = -diff_y
+    else:
+        start_pos_y_p2 = diff_y
+    # start_pos_y = top_right_corner[1] - top_left_corner[1]
+
+    combined_subimage = np.zeros((max(h1, h2)+100, w1+w2+100, 3), dtype=np.uint8)
+    combined_subimage[start_pos_y_p1:start_pos_y_p1+h1, 0:w1] = piece1_subimage
+    combined_subimage[start_pos_y_p2:start_pos_y_p2+h2, start_pos:start_pos+w2] = cv2.bitwise_xor(combined_subimage[start_pos_y_p2:start_pos_y_p2+h2, start_pos:start_pos+w2], piece2_subimage)
+
+    return combined_subimage
+
+def getAdjustedCorners(piece, center, radius, angle):
+    new_corners = []
+    for i, corner in enumerate(piece.corners):
+        x_old = corner[1]
+        y_old = corner[2]
+        # adjust so pivot is at origin
+        x_adj = x_old - center[0]
+        y_adj = y_old - center[1]
+        # now rotate about origin
+        x_new = x_adj*math.cos(math.radians(-angle)) - y_adj*math.sin(math.radians(-angle))
+        y_new = y_adj*math.cos(math.radians(-angle)) + x_adj*math.sin(math.radians(-angle))
+        # now add the radius so the corner is at the correct position in the subimage
+        x_new += radius
+        y_new += radius
+        new_corners.append((int(x_new), int(y_new)))
+    return new_corners
 
 def findCorners(contour, image):
-
+    
     x1 = np.min(contour[:,:,0])
     x2 = np.max(contour[:,:,0])
     y1 = np.min(contour[:,:,1])
     y2 = np.max(contour[:,:,1])
 
 
-    dist = 10
-    sharpdist = 15
+    dist = 3
+    sharpdist = len(contour) // 128 # two dots on each side
     prominence = 0
 
     center = np.mean(contour[:,0], axis=0)
@@ -183,10 +275,13 @@ def findCorners(contour, image):
 def pickBestPeaks( contour, peaks, img, sharpness ):
 
     # want the collection of peaks that maximizes area within the contour covered.
-
-    img3 = np.zeros_like(img)
-    cv2.drawContours(img3, [contour], -1, (255,255,255), thickness=-1)
-
+    (x,y), r = cv2.minEnclosingCircle(contour)
+    r = int(r)
+    x = int(x)
+    y = int(y)
+    img3 = np.zeros((2*r, 2*r), dtype=np.uint8)
+    adj_contour = contour - [x-r, y-r]
+    cv2.drawContours(img3, [adj_contour], -1, 255, thickness=-1)
     maxScore = -1
     maxPeaks = [0, 1, 2, 3]
     for i in range(len(peaks)):
@@ -197,14 +292,18 @@ def pickBestPeaks( contour, peaks, img, sharpness ):
                 peak3 = peaks[k]
                 for l in range(k+1, len(peaks)):
                     peak4 = peaks[l]
-                    #img2 = np.zeros_like(img)
+                    img2 = np.zeros_like(img3)
                     point1 = [contour[peak1][0][0],  contour[peak1][0][1]]
                     point2 = [contour[peak2][0][0],  contour[peak2][0][1]]
                     point3 = [contour[peak3][0][0],  contour[peak3][0][1]]
                     point4 = [contour[peak4][0][0],  contour[peak4][0][1]]
 
                     points = np.array([point1, point2, point3, point4])
-                    #cv2.fillPoly(img2, pts=[points], color =(255,255,255))
+                    adj_points = points - [x-r, y-r]
+                    cv2.fillPoly(img2, pts=[adj_points], color =255)
+                    img4 = cv2.bitwise_and(img2, img3)
+
+                    covered_area = np.sum(img4 == 255)
 
                     #img4 = cv2.bitwise_and(img2, img3)
                     #img5 = cv2.bitwise_and(img2, cv2.bitwise_not(img3))
@@ -227,15 +326,16 @@ def pickBestPeaks( contour, peaks, img, sharpness ):
                     area_rect = cv2.contourArea(box)
                     area_points = cv2.contourArea(np.array([contour[peak1], contour[peak2], contour[peak3], contour[peak4]]))
 
+
                     # maximum when points form perfect rectangle
                     if area_rect > 0:
-                        score_rect = (area_points / area_rect)
+                        score_rect = (covered_area / area_rect)
                     else:
                         score_rect = 0
                     #print(area_points, area_rect)
                     score_sharp = sharpness[i] + sharpness[j] + sharpness[k] + sharpness[l]
                     #print(score)
-                    score = score_rect * area_points * score_sharp
+                    score = covered_area * math.sqrt(score_sharp)
 
                     if score > maxScore:
                         maxPeaks = [peak1, peak2, peak3, peak4]

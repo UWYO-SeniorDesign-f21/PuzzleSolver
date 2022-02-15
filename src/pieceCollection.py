@@ -2,6 +2,7 @@ from scipy import stats
 import cv2
 import numpy as np
 import math
+import random
 
 from piece import Piece
 
@@ -51,7 +52,7 @@ class PieceCollection:
             piece_image = piece.getSubimage(0, with_details=with_details)
             image_dict[piece] = piece_image
 
-            cv2.imshow('piece image', piece.getSubimage(0, with_details=False))
+            cv2.imshow('piece image', piece.getSubimage(0, with_details=True))
             cv2.waitKey()
 
             piece_image_size = max(piece_image.shape)
@@ -91,7 +92,7 @@ class PieceCollection:
 def drawPieces( img, contours ):
     #put the contour areas on a blank background as white
     img2 = np.zeros_like(img)
-    cv2.drawContours(img2, contours, -1, (255,255,255), thickness=-1)
+    cv2.drawContours(img2, contours, -1, (255,255,255),  lineType=cv2.FILLED, thickness=0)
     #take the white areas and include those areas from img
     img3 = img & img2
     return img3
@@ -112,16 +113,15 @@ def showLabels( img, contours, labels ):
         cv2.rectangle(img, rect_pos1, rect_pos2, (255,255,255), -1)
         cv2.putText(img, str(labels[i]), (textX, textY), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0,0,0), font_thickness, 3)
     return img
-
-
         
 def getContours(image, num_pieces):
-    color_range = [10, 25, 30]
+    color_range = [10, 50, 50]
     # convert the image to the hsv color spectrum
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # reshape image into just 3 by num pixels list of the colors
     colors = image_hsv.reshape(-1, 3)
+    colors = 5 * np.around(colors / 5)
     # find the most common color in that list
     background = stats.mode(colors)[0][0]
 
@@ -136,8 +136,24 @@ def getContours(image, num_pieces):
 
     # dilate the mask to get a slightly better fit
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-    mask = cv2.erode(mask, kernel, iterations=2)
+    mask = cv2.erode(mask, kernel, iterations=3)
     mask = cv2.dilate(mask, kernel, iterations=5)
+
+    image2 = image_hsv.copy()
+
+    h, w, _ = image.shape
+
+    # mask2 = np.zeros((h+2, w+2), dtype=np.uint8)
+    # mask2[1:-1, 1:-1] = cv2.bitwise_not(mask)
+    # cv2.floodFill(image2, mask2, (10,10), 0, (20,30,50), (20,30,50))
+    # cv2.imshow('image', cv2.resize(image2, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+    # cv2.waitKey(1000)
+    # mask = cv2.inRange(image2, (0,0,0), (0,0,0))
+    # cv2.imshow('mask', cv2.resize(mask, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
+    # cv2.waitKey()
+    # mask = cv2.dilate(mask, kernel, iterations=3)
+    # mask = cv2.erode(mask, kernel, iterations=4)
+    # mask = cv2.dilate(mask, kernel, iterations=1)
 
     #find contours in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -174,18 +190,51 @@ if __name__ == '__main__':
     # collection.addPieces('pokemon_puzzle_2_04.png', 20)
     # collection.addPieces('pokemon_puzzle_2_05.png', 20)
 
-    collection.addPieces('300_01.png', 30)
-    collection.addPieces('300_02.png', 30)
-    collection.addPieces('300_03.png', 30)
-    collection.addPieces('300_04.png', 30)
-    collection.addPieces('300_05.png', 30)
-    collection.addPieces('300_06.png', 30)
-    collection.addPieces('300_07.png', 30)
-    collection.addPieces('300_08.png', 30)
-    collection.addPieces('300_09.png', 30)
-    collection.addPieces('300_10.png', 30)
+    # collection.addPieces('300_10.png', 30)
+    # collection.addPieces('300_01.png', 30)
+    # collection.addPieces('300_02.png', 30)
+    # collection.addPieces('300_03.png', 30)
+    # collection.addPieces('300_04.png', 30)
+    # collection.addPieces('300_05.png', 30)
+    # collection.addPieces('300_06.png', 30)
+    # collection.addPieces('300_07.png', 30)
+    # collection.addPieces('300_08.png', 30)
+    # collection.addPieces('300_09.png', 30)
+    collection.addPieces('tart_puzzle_01.jpg', 30)
+    # collection.addPieces('tart_puzzle_02.jpg', 30)
+    # collection.addPieces('tart_puzzle_03.jpg', 30)
+    # collection.addPieces('tart_puzzle_04.jpg', 30)
+    # collection.addPieces('tart_puzzle_05.jpg', 30)
+    # collection.addPieces('tart_puzzle_06.jpg', 30)
+    # collection.addPieces('tart_puzzle_07.jpg', 28)
+    # collection.addPieces('tart_puzzle_08.jpg', 30)
+    # collection.addPieces('tart_puzzle_09.jpg', 30)
+    # collection.addPieces('tart_puzzle_10.jpg', 30)
+    # collection.addPieces('tart_puzzle_11.jpg', 26)
+    collection.addPieces('travel_puzzle_01.jpg', 30)
+    collection.addPieces('travel_puzzle_02.jpg', 30)
+    collection.addPieces('travel_puzzle_03.jpg', 30)
+    collection.addPieces('travel_puzzle_04.jpg', 30)
+    collection.addPieces('travel_puzzle_05.jpg', 30)
+    collection.addPieces('travel_puzzle_06.jpg', 30)
+    collection.addPieces('travel_puzzle_07.jpg', 30)
+    collection.addPieces('travel_puzzle_08.jpg', 30)
+    collection.addPieces('travel_puzzle_09.jpg', 30)
+    collection.addPieces('travel_puzzle_10.jpg', 12)
+    collection.addPieces('travel_puzzle_11.jpg', 18)
 
+    # collection.addPieces('shining_01.jpg', 42)
+    # collection.addPieces('shining_02.jpg', 42)
+    # collection.addPieces('shining_03.jpg', 42)
+    # collection.addPieces('shining_04.jpg', 42)
+    # collection.addPieces('shining_05.jpg', 42)
+    # collection.addPieces('shining_06.jpg', 42)
+    # collection.addPieces('shining_07.jpg', 42)
+    # collection.addPieces('shining_08.jpg', 42)
+    # collection.addPieces('shining_09.jpg', 42)
+    # collection.addPieces('shining_10.jpg', 42)
 
-    #collection.showPieceImages()
+    collection.showPieceImages()
     all_pieces = collection.getAllPiecesImage(with_details=True)
     cv2.imwrite('starwars_all_pieces.png', all_pieces)
+
