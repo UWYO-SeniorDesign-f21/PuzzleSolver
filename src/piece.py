@@ -124,7 +124,9 @@ class Piece:
 
 # self on the left, piece2 on the right ::: 
 def combineSubimagesRight(piece1, edge_up_1, piece2, edge_up_2):
-    piece1_subimage, c1, r1, a1 = piece1.getSubimage2(edge_up=(edge_up_1-1)%4)
+    piece1_subimage, c1, r1, a1 = piece1.getSubimage2(edge_up=(edge_up_1+1)%4)
+    piece1_subimage = imutils.rotate(piece1_subimage, -90)
+    a1 -= 90
     piece1_adj_corners = getAdjustedCorners(piece1, c1, r1, a1)
     h1, w1, _ = piece1_subimage.shape
 
@@ -134,7 +136,9 @@ def combineSubimagesRight(piece1, edge_up_1, piece2, edge_up_2):
             top_right_corner = (x, y)
         cv2.circle(piece1_subimage, (x, y), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
 
-    piece2_subimage, c2, r2, a2 = piece2.getSubimage2(edge_up=(edge_up_2+1)%4)
+    piece2_subimage, c2, r2, a2 = piece2.getSubimage2(edge_up=(edge_up_2-1)%4)
+    piece2_subimage = imutils.rotate(piece2_subimage, 90)
+    a2 += 90
     piece2_adj_corners = getAdjustedCorners(piece2, c2, r2, a2)
     h2, w2, _ = piece2_subimage.shape
 
