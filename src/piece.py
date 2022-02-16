@@ -105,9 +105,31 @@ class Piece:
 
         # find a circle that encloses the piece in the image
         (x,y), r = cv2.minEnclosingCircle(self.contour)
-        r = r + 1
-        image = self.image[int(y-r):int(y+r), int(x-r):int(x+r)]
-        adj_contour = self.contour - [int(x-r), int(y-r)]
+        x = int(x)
+        y = int(y)
+        r = int(r)
+        if y - r < 0:
+            y = r
+        if x - r < 0:
+            x = r
+
+        h, w, _ = self.image.shape
+        
+        lpad = rpad = tpad = bpad = 0
+        if y - r < 0:
+            tpad = -(y - r)
+        if x - r < 0:
+            lpad = -(x - r)
+
+        
+
+
+        image_1 = self.image[max(y-r, 0):min(y+r, h),max(x-r, 0):min(x+r, w)]
+        h1, w1, _ = image_1.shape
+
+        image = np.zeros((2*r, 2*r, 3), dtype=np.uint8)
+        image[tpad:tpad+h1, lpad:lpad+w1] = image_1
+        adj_contour = self.contour - [x-r+lpad, y-r+tpad]
 
         # isolate the piece in the image
         mask = np.zeros_like(image)
@@ -119,7 +141,6 @@ class Piece:
             angle = angle + 180 # flip 180 degrees
 
         final_image = imutils.rotate(image_piece_isolated, angle) # rotate the image
-
         return final_image, (x, y), r, angle
 
 # self on the left, piece2 on the right ::: 

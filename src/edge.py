@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import math
 
 '''
 The edge class contains information about an edge of a puzzle piece.
@@ -13,14 +14,14 @@ Has one non-helper function that compares edges
 '''
 class Edge:
     def __init__(self, number, image, contour):
-        points_per_side = 32
+        self.points_per_side = 32
         self.number = number
         self.image = image
         self.corner_dist = np.linalg.norm(contour[0] - contour[-1])
-        pts = np.linspace(0, len(contour) - 1, num=points_per_side).astype(int)
+        pts = np.linspace(0, len(contour) - 1, num=self.points_per_side).astype(int)
         self.contour = contour[pts]
-        self.distance_arr = findDistanceArray(self.contour, self.image)
-        self.label = findLabel(self.distance_arr)
+        self.distance_arr = self.findDistanceArray(self.contour)
+        self.label = self.findLabel(self.distance_arr)
         #self.distance_arr = smoothDistanceArray(self.distance_arr, 15)
         self.color_arr = findColorArray(self.contour, self.image, color_mode=0)
         self.color_arr_hsv = findColorArray(self.contour, self.image, color_mode=1)
@@ -165,69 +166,58 @@ class Edge:
         # min_diff += color_diff_hsv
         # return min_diff 
 
-def findDistanceArray(contour, image):
-    if len(contour) == 0:
-        return np.array([])
-    c1 = contour[0] # find coords of first corner
-    c2 = contour[-1] # find coords of second corner
+    def findDistanceArray(self, contour):
+        if len(contour) == 0:
+            return np.array([])
+        c1 = contour[0] # find coords of first corner
+        c2 = contour[-1] # find coords of second corner
 
-    d_arr = -np.cross(c2-c1,contour-c1)/np.linalg.norm(c2-c1)
-    # colors = 50 * ((d_arr - np.min(d_arr)) / np.max(d_arr - np.min(d_arr)))
-    # print(np.min(colors), np.max(colors))
+        d_arr = -np.cross(c2-c1,contour-c1)/np.linalg.norm(c2-c1)
+        # colors = 50 * ((d_arr - np.min(d_arr)) / np.max(d_arr - np.min(d_arr)))
+        # print(np.min(colors), np.max(colors))
 
-    # min_x = min(new_contour[:,0], key=lambda x:x[0])[0] - 40
-    # max_x = max(new_contour[:,0], key=lambda x:x[0])[0] + 40
+        # min_x = min(new_contour[:,0], key=lambda x:x[0])[0] - 40
+        # max_x = max(new_contour[:,0], key=lambda x:x[0])[0] + 40
 
-    # min_y = min(new_contour[:,0], key=lambda x:x[1])[1] - 40
-    # max_y = max(new_contour[:,0], key=lambda x:x[1])[1] + 40
-    # image2 = image.copy()
-    # for i, point in enumerate(new_contour):
-    #     pt = point[0]
-    #     x = pt[0]
-    #     y = pt[1]
-    #     color = np.uint8([[[colors[i],255,255]]])
-    #     color_bgr = cv2.cvtColor(color,cv2.COLOR_HSV2BGR)[0][0]
-    #     color_bgr = (int(color_bgr[0]), int(color_bgr[1]), int(color_bgr[2]))
-    #     print(color_bgr)
-    #     cv2.circle(image2, (int(x), int(y)), 5, color_bgr, thickness=-1, lineType=cv2.FILLED)
-    # cv2.imshow('image', image2[min_y:max_y, min_x:max_x])
-    # cv2.waitKey()
-    # for each point along the contour, find distance to line btw c1, c2
-    return d_arr
+        # min_y = min(new_contour[:,0], key=lambda x:x[1])[1] - 40
+        # max_y = max(new_contour[:,0], key=lambda x:x[1])[1] + 40
+        # image2 = image.copy()
+        # for i, point in enumerate(new_contour):
+        #     pt = point[0]
+        #     x = pt[0]
+        #     y = pt[1]
+        #     color = np.uint8([[[colors[i],255,255]]])
+        #     color_bgr = cv2.cvtColor(color,cv2.COLOR_HSV2BGR)[0][0]
+        #     color_bgr = (int(color_bgr[0]), int(color_bgr[1]), int(color_bgr[2]))
+        #     print(color_bgr)
+        #     cv2.circle(image2, (int(x), int(y)), 5, color_bgr, thickness=-1, lineType=cv2.FILLED)
+        # cv2.imshow('image', image2[min_y:max_y, min_x:max_x])
+        # cv2.waitKey()
+        # for each point along the contour, find distance to line btw c1, c2
+        return d_arr
 
-def smoothDistanceArray(dist_arr, n):
-    dist_arr = np.append(np.repeat(dist_arr[0], int(n/2)), dist_arr)
-    dist_arr = np.append(dist_arr, np.repeat(dist_arr[-1], int(n/2)))
-    ret = np.cumsum(dist_arr, dtype=float)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
-
-def smoothColorArray(color_arr, n):
-    color_arr = np.vstack((np.tile(color_arr[0], (int(n/2), 1)), color_arr))
-    color_arr = np.vstack((color_arr, np.tile(color_arr[-1], (int(n/2), 1))))
-    ret = np.cumsum(color_arr, axis=0)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
-
-
-def findLabel(distance_arr):
-    if len(distance_arr) == 0:
-        return 'none'
-    # epsilon determines the distance from the line between corners to use as a threshold for 'flat'
-    epsilon = 20
-    extreme = np.max(abs(distance_arr)) # furthest point from the line
-    if extreme <= epsilon: # below threshold
-        label = 'flat'
-    elif extreme == np.max(distance_arr): # extreme value goes away from center
-        label = 'outer'
-    else: # extreme value goes towards center
-        label = 'inner'
-    return label
+    def findLabel(self, distance_arr):
+        if len(distance_arr) == 0:
+            return 'none'
+        # epsilon determines the distance from the line between corners to use as a threshold for 'flat'
+        epsilon = 10
+        extreme = np.max(abs(distance_arr)) # furthest point from the line
+        # extreme value of middle 50%, used to detect side edges, so that the corners don't mess w it
+        middle_points = self.contour[math.floor(self.points_per_side / 4):math.ceil(self.points_per_side * 3 / 4)]
+        middle_dists = self.findDistanceArray(middle_points)
+        middle_extreme = np.max(abs(middle_dists))
+        if middle_extreme <= epsilon: # below threshold
+            label = 'flat'
+        elif extreme == np.max(distance_arr): # extreme value goes away from center
+            label = 'outer'
+        else: # extreme value goes towards center
+            label = 'inner'
+        return label
 
 def findColorArray(contour, image, color_mode=0):
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     image_gr = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    pixels_in = range(18,20) # range of pixels from edge to average over
+    pixels_in = range(15,20) # range of pixels from edge to average over
 
     # slope of perpendicular lines at each point on the contour
     perp_slopes = np.empty_like(contour[1:-1,0])

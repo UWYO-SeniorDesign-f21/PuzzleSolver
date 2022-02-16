@@ -69,26 +69,26 @@ def main():
     # collection.addPieces('300_09.png', 30)
     # collection.addPieces('300_10.png', 30)
 
-    puzzle_name = 'tart'
-    dims = (18, 18)
+    # puzzle_name = 'tart'
+    # dims = (18, 18)
 
-    # # add pieces
+    # # # add pieces
 
-    collection = PieceCollection()
+    # collection = PieceCollection()
 
-    collection.addPieces('tart_puzzle_01.jpg', 30)
-    collection.addPieces('tart_puzzle_02.jpg', 30)
-    collection.addPieces('tart_puzzle_03.jpg', 30)
-    collection.addPieces('tart_puzzle_04.jpg', 30)
-    collection.addPieces('tart_puzzle_05.jpg', 30)
-    collection.addPieces('tart_puzzle_06.jpg', 30)
-    collection.addPieces('tart_puzzle_07.jpg', 28)
-    collection.addPieces('tart_puzzle_08.jpg', 30)
-    collection.addPieces('tart_puzzle_09.jpg', 30)
-    collection.addPieces('tart_puzzle_10.jpg', 30)
-    collection.addPieces('tart_puzzle_11.jpg', 26)
+    # collection.addPieces('tart_puzzle_01.jpg', 30)
+    # collection.addPieces('tart_puzzle_02.jpg', 30)
+    # collection.addPieces('tart_puzzle_03.jpg', 30)
+    # collection.addPieces('tart_puzzle_04.jpg', 30)
+    # collection.addPieces('tart_puzzle_05.jpg', 30)
+    # collection.addPieces('tart_puzzle_06.jpg', 30)
+    # collection.addPieces('tart_puzzle_07.jpg', 28)
+    # collection.addPieces('tart_puzzle_08.jpg', 30)
+    # collection.addPieces('tart_puzzle_09.jpg', 30)
+    # collection.addPieces('tart_puzzle_10.jpg', 30)
+    # collection.addPieces('tart_puzzle_11.jpg', 26)
 
-    # puzzle_name = 'travel_nokeep'
+    # puzzle_name = 'travel'
     # dims = (21.25, 15)
 
     # # add pieces
@@ -106,6 +106,29 @@ def main():
     # collection.addPieces('travel_puzzle_09.jpg', 30)
     # collection.addPieces('travel_puzzle_10.jpg', 12)
     # collection.addPieces('travel_puzzle_11.jpg', 18)
+
+
+    puzzle_name = 'shining'
+    dims = (18, 24)
+
+    # add pieces
+
+    collection = PieceCollection()
+
+    
+    collection.addPieces('shining_01.jpg', 42)
+    collection.addPieces('shining_02.jpg', 42)
+    collection.addPieces('shining_03.jpg', 42)
+    collection.addPieces('shining_04.jpg', 42)
+    collection.addPieces('shining_05.jpg', 42)
+    collection.addPieces('shining_06.jpg', 42)
+    collection.addPieces('shining_07.jpg', 42)
+    collection.addPieces('shining_08.jpg', 42)
+    collection.addPieces('shining_09.jpg', 42)
+    collection.addPieces('shining_10.jpg', 42)
+    collection.addPieces('shining_11.jpg', 42)
+    collection.addPieces('shining_12.jpg', 24)
+    collection.addPieces('shining_13.jpg', 15)
 
     # print(len(collection.pieces))
 
@@ -130,7 +153,7 @@ def main():
     #solver = getSolutionGenetic(200, 200, collection, puzzle_dims, show_solutions=False, time=True, puzzle_name=f'{puzzle_name}_sides', just_sides=True)
     #cv2.destroyAllWindows()
     #solver = getSolutionGenetic(100, 100, collection, puzzle_dims, show_solutions=False, time=True, puzzle_name=puzzle_name, include_edges=solver.edges)
-    solver = getSolutionGenetic(200, 1000, collection, puzzle_dims, show_solutions=False, time=True, puzzle_name=puzzle_name)
+    solver = getSolutionGenetic(50, 1000, collection, puzzle_dims, show_solutions=False, time=True, puzzle_name=puzzle_name)
 
     print(f'score: {solver.score}')
 
@@ -194,8 +217,8 @@ def getSolutionGenetic(gen_size, num_gens, piece_collection, dims, show_solution
             gen_time = 0
 
         solutions = sorted(solutions, key=lambda x:x.score)
-        if solutions[0].score < best_solution.score:
-            best_solution = solutions[0]
+
+        top_10_percent = solutions[:gen_size // 10]
 
         limit = 10*gen_size
         counter = 0
@@ -218,24 +241,24 @@ def getSolutionGenetic(gen_size, num_gens, piece_collection, dims, show_solution
         # approaches 0.5 as number of varieties decreases
         #print(f'mutation rate: {mutation_rate}')
         if gen == 1:
-            selection = random.choices(solutions, k=gen_size//3)
+            selection = random.choices(solutions, k=gen_size//2)
         else:
-            selection = select_all(solutions, gen_size//3, 2)
+            selection = select_all(solutions, 4*gen_size//10, 2)
+            selection += top_10_percent
 
         # new_solutions += selection
-        #selection.append(best_solution)
+        # maybe keep top 10% of scores, select remaining 1/2, crossover to fill
         new_solutions = selection
 
-        print(len(selection), gen_size)
         #new_solutions += top_percent
         while len(new_solutions) < gen_size:
             if time:
                 start = timer()
             parent1, parent2 = random.choices(selection, k=2)
-            if abs(parent1.score - parent2.score) < 1:
+            if abs(parent1.score - parent2.score) < 1: # to prevent infinite looping :(
                 counter += 1
                 if counter > limit:
-                    solver = parent1.mutate(0.95)
+                    solver = parent1.mutate(0.95) 
                 else:
                     continue
             else:
@@ -257,20 +280,33 @@ def getSolutionGenetic(gen_size, num_gens, piece_collection, dims, show_solution
             if len(new_solutions) % 50 == 0:
                 print(f'\t{len(new_solutions)}')
 
-        new_scores = [int(solution.score) for solution in new_solutions]
+        if time:
+            start = timer()
 
-        if min(new_scores) < int(best_solution.score):
-            best_solution = min(new_solutions, key=lambda x:x.score)
+        new_best = None
+
+        getDiversityScore(new_solutions, gen_size)
+        scores_before_mutation = [solution.score for solution in new_solutions]
+        if min(scores_before_mutation) < best_solution.score:
+            new_best = min(new_solutions, key=lambda x:x.score).mutate(0) # ccopy
+
+        print(f'top 10 scores gen {gen} before mutation: {sorted(scores_before_mutation)[:10]}')
+        solutions = [solution.mutate(getMutationRate(solution)) for solution in new_solutions]
+
+        new_scores = [solution.score for solution in solutions]
+
+        if min(new_scores) < best_solution.score:
+            new_best = min(solutions, key=lambda x:x.score).mutate(0)
+        
+        if not new_best is None:
+            best_solution = new_best
             solution_image = best_solution.getSolutionImage()
             h, w, _ = solution_image.shape
             #cv2.imshow(f'best solution gen {gen}', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
             #cv2.waitKey()
             cv2.imwrite(f'best_solution_gen_{gen}_{puzzle_name}.png', solution_image)
 
-        if time:
-            start = timer()
-        getDiversityScore(new_solutions, gen_size)
-        solutions = [solution.mutate(getMutationRate(solution)) for solution in new_solutions]
+
         if time:
             end = timer()
             gen_time += (end - start)
@@ -348,7 +384,6 @@ class PuzzleSolver:
         common_edges = self.edges.intersection(other.edges)
         new_solution = PuzzleSolver(self.pieces, self.puzzle_dims, self.dist_dict, self.sorted_dists, self.empty_edge_dist, cutoff=self.cutoff)
         new_solution.solvePuzzle(random_start=True, include_edges=common_edges)
-        new_solution = new_solution.mutate(0)
         return new_solution
 
     def mutate(self, mutation_rate):
@@ -418,8 +453,12 @@ class PuzzleSolver:
                 _, _, piece3, edge3 = connected_edges[0]
                 sorted_dists = self.sorted_dists[(piece3, edge3)]  
                 swap_cost = 0              
-                piece2_choices = random.sample(sorted_dists, k=min(len(sorted_dists), 32))
-                piece2, edge2 = min(piece2_choices, key=lambda x:x[1])[0]
+                piece2 = None
+                while piece2 is None:
+                    piece2_choices = random.sample(sorted_dists, k=min(len(sorted_dists), 32))
+                    piece2, edge2 = min(piece2_choices, key=lambda x:x[1])[0]
+                    if piece2 == piece1 and edge1 == edge2:
+                        piece2 = None
                 swap_cost = swapCost(piece1, edge1, piece2, edge2, edges, self.dist_dict)
                 if swap_cost < min_cost and swap_cost != 0:
                     min_edge = ((piece1, edge1, piece2, edge2), swap_cost)

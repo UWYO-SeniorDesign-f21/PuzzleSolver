@@ -52,8 +52,8 @@ class PieceCollection:
             piece_image = piece.getSubimage(0, with_details=with_details)
             image_dict[piece] = piece_image
 
-            cv2.imshow('piece image', piece.getSubimage(0, with_details=True))
-            cv2.waitKey()
+            # cv2.imshow('piece image', piece.getSubimage(0, with_details=True))
+            # cv2.waitKey()
 
             piece_image_size = max(piece_image.shape)
             if piece_image_size > max_size:
@@ -87,12 +87,13 @@ class PieceCollection:
             h, w, _ = image_pieces.shape
             cv2.imshow(f'image {i}', cv2.resize(image_pieces, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
             cv2.waitKey()
+            cv2.imwrite(f'image{i}shining.png', image_pieces)
 
 
 def drawPieces( img, contours ):
     #put the contour areas on a blank background as white
     img2 = np.zeros_like(img)
-    cv2.drawContours(img2, contours, -1, (255,255,255),  lineType=cv2.FILLED, thickness=0)
+    cv2.drawContours(img2, contours, -1, (255,255,255), thickness=-1)
     #take the white areas and include those areas from img
     img3 = img & img2
     return img3
@@ -200,7 +201,7 @@ if __name__ == '__main__':
     # collection.addPieces('300_07.png', 30)
     # collection.addPieces('300_08.png', 30)
     # collection.addPieces('300_09.png', 30)
-    collection.addPieces('tart_puzzle_01.jpg', 30)
+    # collection.addPieces('tart_puzzle_01.jpg', 30)
     # collection.addPieces('tart_puzzle_02.jpg', 30)
     # collection.addPieces('tart_puzzle_03.jpg', 30)
     # collection.addPieces('tart_puzzle_04.jpg', 30)
@@ -211,30 +212,38 @@ if __name__ == '__main__':
     # collection.addPieces('tart_puzzle_09.jpg', 30)
     # collection.addPieces('tart_puzzle_10.jpg', 30)
     # collection.addPieces('tart_puzzle_11.jpg', 26)
-    collection.addPieces('travel_puzzle_01.jpg', 30)
-    collection.addPieces('travel_puzzle_02.jpg', 30)
-    collection.addPieces('travel_puzzle_03.jpg', 30)
-    collection.addPieces('travel_puzzle_04.jpg', 30)
-    collection.addPieces('travel_puzzle_05.jpg', 30)
-    collection.addPieces('travel_puzzle_06.jpg', 30)
-    collection.addPieces('travel_puzzle_07.jpg', 30)
-    collection.addPieces('travel_puzzle_08.jpg', 30)
-    collection.addPieces('travel_puzzle_09.jpg', 30)
-    collection.addPieces('travel_puzzle_10.jpg', 12)
-    collection.addPieces('travel_puzzle_11.jpg', 18)
+    # collection.addPieces('travel_puzzle_01.jpg', 30)
+    # collection.addPieces('travel_puzzle_02.jpg', 30)
+    # collection.addPieces('travel_puzzle_03.jpg', 30)
+    # collection.addPieces('travel_puzzle_04.jpg', 30)
+    # collection.addPieces('travel_puzzle_05.jpg', 30)
+    # collection.addPieces('travel_puzzle_06.jpg', 30)
+    # collection.addPieces('travel_puzzle_07.jpg', 30)
+    # collection.addPieces('travel_puzzle_08.jpg', 30)
+    # collection.addPieces('travel_puzzle_09.jpg', 30)
+    # collection.addPieces('travel_puzzle_10.jpg', 12)
+    # collection.addPieces('travel_puzzle_11.jpg', 18)
 
-    # collection.addPieces('shining_01.jpg', 42)
-    # collection.addPieces('shining_02.jpg', 42)
-    # collection.addPieces('shining_03.jpg', 42)
-    # collection.addPieces('shining_04.jpg', 42)
-    # collection.addPieces('shining_05.jpg', 42)
-    # collection.addPieces('shining_06.jpg', 42)
-    # collection.addPieces('shining_07.jpg', 42)
-    # collection.addPieces('shining_08.jpg', 42)
-    # collection.addPieces('shining_09.jpg', 42)
-    # collection.addPieces('shining_10.jpg', 42)
+    collection.addPieces('shining_01.jpg', 42)
+    collection.addPieces('shining_02.jpg', 42)
+    collection.addPieces('shining_03.jpg', 42)
+    collection.addPieces('shining_04.jpg', 42)
+    collection.addPieces('shining_05.jpg', 42)
+    collection.addPieces('shining_06.jpg', 42)
+    collection.addPieces('shining_07.jpg', 42)
+    collection.addPieces('shining_08.jpg', 42)
+    collection.addPieces('shining_09.jpg', 42)
+    collection.addPieces('shining_10.jpg', 42)
+    collection.addPieces('shining_11.jpg', 42)
+    collection.addPieces('shining_12.jpg', 24)
+    collection.addPieces('shining_13.jpg', 15)
 
     collection.showPieceImages()
-    all_pieces = collection.getAllPiecesImage(with_details=True)
-    cv2.imwrite('starwars_all_pieces.png', all_pieces)
+    cv2.destroyAllWindows()
 
+    print(len([piece for piece in collection.pieces if piece.type == 'corner']))
+    print(len([piece for piece in collection.pieces if piece.type == 'side']))
+    print(len([piece for piece in collection.pieces if piece.type == 'middle']))
+
+    # all_pieces = collection.getAllPiecesImage(with_details=True)
+    # cv2.imwrite('shining_all_pieces.png', all_pieces)
