@@ -58,10 +58,12 @@ class PuzzleSolver:
         for filename, num_pieces in image_infos:
             self.collection.addPieces(filename, num_pieces)
         
+        self.generation_counter = 0
+
         # mutation parameters:
         self.min_exp = 0.2
         self.max_exp = self.collection.num_pieces_total // 25
-        self.exp_function = (lambda x:x)
+        self.exp_function = (lambda x:x) # ranges from 0 to 1
 
         self.edge_count_dict = {} # used in calculating similarity score
 
@@ -72,7 +74,6 @@ class PuzzleSolver:
         self.dist_dict, self.sorted_dists, self.empty_edge_dist, _ = getDistDict(self.collection.pieces)
 
         self.doGen0(self.sides_first, set())
-        self.generation_counter = 1
 
     
     def solvePuzzle(self):
@@ -226,6 +227,7 @@ class PuzzleSolver:
         cv2.imwrite(f'best_solution_gen_0{self.puzzle_name}.jpg', solution_image)   
         print(f'total time gen 0: {gen_time}')        
         self.total_time += gen_time
+        self.generation_counter += 1
 
 
     def getMutationRate(self, solver):
