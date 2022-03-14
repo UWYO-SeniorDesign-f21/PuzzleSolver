@@ -138,7 +138,6 @@ class PuzzleSolution:
 
             roll = random.uniform(0, 1)
         if total_mutation_cost < 0:
-            print(num_mutations, total_mutation_cost)
             return new_solution
         else:
             return self

@@ -45,29 +45,29 @@ def main():
     #     ('input/feather2_05.jpg', 40),('input/feather2_06.jpg', 40),('input/feather2_07.jpg', 40),('input/feather2_08.jpg', 20)],
     #     settings=[20, 40, 50, 12, 16, 32])
 
-    puzzle_solver = PuzzleSolver("travel", (21.25, 15), 200, 100,
-        [('input/travel_puzzle_01.jpg', 30),('input/travel_puzzle_02.jpg', 30),('input/travel_puzzle_03.jpg', 30),('input/travel_puzzle_04.jpg', 30),
-        ('input/travel_puzzle_05.jpg', 30),('input/travel_puzzle_06.jpg', 30),('input/travel_puzzle_07.jpg', 30),('input/travel_puzzle_08.jpg', 30),
-        ('input/travel_puzzle_09.jpg', 30),('input/travel_puzzle_10.jpg', 12),('input/travel_puzzle_11.jpg', 18)],
-         settings=[10, 50, 50, 10, 20, 64])
+    # puzzle_solver = PuzzleSolver("travel", (21.25, 15), 200, 100,
+    #     [('input/travel_puzzle_01.jpg', 30),('input/travel_puzzle_02.jpg', 30),('input/travel_puzzle_03.jpg', 30),('input/travel_puzzle_04.jpg', 30),
+    #     ('input/travel_puzzle_05.jpg', 30),('input/travel_puzzle_06.jpg', 30),('input/travel_puzzle_07.jpg', 30),('input/travel_puzzle_08.jpg', 30),
+    #     ('input/travel_puzzle_09.jpg', 30),('input/travel_puzzle_10.jpg', 12),('input/travel_puzzle_11.jpg', 18)],
+    #      settings=[10, 50, 50, 10, 20, 64])
 
     # puzzle_solver = PuzzleSolver("owl3", (21.25, 15), 1000, 500,
     # [('input/owl2_01.jpg', 40), ('input/owl2_02.jpg', 40), ('input/owl2_03.jpg', 40),
     # ('input/owl2_04.jpg', 40), ('input/owl2_05.jpg', 40), ('input/owl2_06.jpg', 40), 
     # ('input/owl2_07.jpg', 40), ('input/owl2_08.jpg', 20)], settings=[10, 30, 30, 12, 16, 64])
  
-    # puzzle_solver = PuzzleSolver("shining", (18, 24), 500, 400, 
+    # puzzle_solver = PuzzleSolver("shining", (18, 24), 10000, 10000, 
     #     [('input/shining_01.jpg', 42), ('input/shining_02.jpg', 42), ('input/shining_03.jpg', 42), ('input/shining_04.jpg', 42),
     #     ('input/shining_05.jpg', 42), ('input/shining_06.jpg', 42), ('input/shining_07.jpg', 42), ('input/shining_08.jpg', 42),
     #     ('input/shining_09.jpg', 42), ('input/shining_10.jpg', 42), ('input/shining_11.jpg', 42), ('input/shining_12.jpg', 23),
     #     ('input/shining_13.jpg', 15)], settings=[10, 50, 50, 14, 20, 64])
 
-    # puzzle_solver = PuzzleSolver("butterfly", (38, 54), 1000, 1000,
-    #     [('input/butterfly2_01.jpg', 60), ('input/butterfly2_02.jpg', 77), ('input/butterfly2_03.jpg', 60), ('input/butterfly2_04.jpg', 66),
-    #     ('input/butterfly2_05.jpg', 77), ('input/butterfly2_06.jpg', 60), ('input/butterfly2_07.jpg', 70), ('input/butterfly2_08.jpg', 43),],
-    #     settings=[20, 40, 50, 12, 20, 64])
+    puzzle_solver = PuzzleSolver("butterfly", (38, 54), 10000, 10000,
+        [('input/butterfly2_01.jpg', 60), ('input/butterfly2_02.jpg', 77), ('input/butterfly2_03.jpg', 60), ('input/butterfly2_04.jpg', 66),
+        ('input/butterfly2_05.jpg', 77), ('input/butterfly2_06.jpg', 60), ('input/butterfly2_07.jpg', 70), ('input/butterfly2_08.jpg', 43),],
+        settings=[20, 40, 50, 12, 20, 64])
 
-    # puzzle_solver = PuzzleSolver("animals1", (38, 54), 10000, 1000, 
+    # puzzle_solver = PuzzleSolver("animals1", (38, 54), 10000, 10000, 
     #     [('input/animals_01.jpg', 77), ('input/animals_02.jpg', 77), ('input/animals_03.jpg', 77), ('input/animals_04.jpg', 77),
     #     ('input/animals_05.jpg', 77), ('input/animals_06.jpg', 77), ('input/animals_07.jpg', 47), ('input/animals_08.jpg', 4)],
     #     settings=[20, 40, 40, 12, 20, 64])
