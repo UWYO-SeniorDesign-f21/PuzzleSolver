@@ -33,13 +33,13 @@ class PieceCollection:
         self.num_pieces_arr.append(num_pieces)
         self.num_pieces_total += num_pieces
     
-    def getAllPiecesImage(self, with_details=False):
+    def getAllPiecesImage(self, with_details=True):
         w, h = max(self.num_pieces_arr), len(self.num_pieces_arr)
 
         image_dict = {}
         max_size = 0
         for piece in self.pieces:
-            piece_image = piece.getSubimage(0, with_details=with_details, resize_factor=2)
+            piece_image = piece.getSubimage(0, with_details=with_details, resize_factor=1)
             image_dict[piece] = piece_image
 
             cv2.imshow('piece image', piece_image)
@@ -71,21 +71,43 @@ class PieceCollection:
         for i, image in enumerate(self.images):
             pieces = [piece for piece in self.pieces if piece.image is image]
             contours = [piece.contour for piece in pieces]
-            image_pieces = drawPieces(image, contours)
+            image_pieces = drawPieces(image, f'{i}', contours)
+            image_pieces_2 = drawPieces(image, f'{i}', contours)
+            image_zeros = np.zeros_like(image)
+            image_zeros_2 = np.zeros_like(image)
             labels = [piece.label for piece in pieces]
-            image_pieces = showLabels(image_pieces, contours, labels)
+            for piece in pieces:
+                for i, corner in enumerate(piece.corners):
+                    prev = piece.corners[i-1]
+                    cv2.circle(image_pieces_2, (int(corner[1]), int(corner[2])), 20, (255, 255, 255), thickness=-1, lineType=cv2.FILLED)
+                    cv2.line(image_pieces_2, (int(corner[1]), int(corner[2])), (int(prev[1]), int(prev[2])), 
+                           (0,255,0), thickness=10)
+
+                for i, edge in enumerate(piece.edges):
+                    cv2.drawContours(image_pieces, edge.contour, -1, (255,255,255), thickness=10)
+                    for j, d in enumerate(edge.distance_arr):
+                        color = (128, max(min((d*2 + 128), 255), 0), 196)
+                        cv2.drawContours(image_zeros, edge.contour, j, (int(color[0]), int(color[1]), int(color[2])), thickness=10)
+                    for j, color in enumerate(edge.color_arr):
+                        cv2.drawContours(image_zeros_2, edge.contour, 1 + j, (int(color[0]), int(color[1]), int(color[2])), thickness=15)
+
             h, w, _ = image_pieces.shape
             cv2.imshow(f'image {i}', cv2.resize(image_pieces, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
             cv2.waitKey()
-            cv2.imwrite(f'image{i}shining.png', image_pieces)
+            cv2.imwrite(f'image{i}pieces.png', image_pieces)
+            cv2.imwrite(f'image{i}corners.png', image_pieces_2)
+            cv2.imwrite(f'image{i}dists.png', image_zeros)
+            cv2.imwrite(f'image{i}colors.png', image_zeros_2)
 
 
-def drawPieces( img, contours ):
+def drawPieces( img, name, contours ):
     #put the contour areas on a blank background as white
     img2 = np.zeros_like(img)
     cv2.drawContours(img2, contours, -1, (255,255,255), thickness=-1)
+    cv2.imwrite(f'{name}_pieces_mask.png', img2)
     #take the white areas and include those areas from img
     img3 = img & img2
+    cv2.imwrite(f'{name}_isolated_pieces.png', img3)
     return img3
 
 def showLabels( img, contours, labels ):
@@ -126,8 +148,8 @@ def getContours(image, num_pieces, settings):
     mask = cv2.erode(mask, kernel, iterations=3)
     mask = cv2.dilate(mask, kernel, iterations=5)
     
-    #cv2.imshow("mask", cv2.resize(mask, (500, 500), interpolation=cv2.INTER_AREA))
-    #cv2.waitKey(0)
+    # cv2.imwrite("mask.png", mask)
+    # cv2.waitKey(0)
 
     #find contours in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -146,14 +168,88 @@ def getLabels(contours, image_num):
     return labels
 if __name__ == '__main__':
 
-    collection = PieceCollection(settings=[10, 50, 50, 12, 20, 32])
-    collection.addPieces('input/butterfly_01.jpg', 60)
+    # collection = PieceCollection(settings=[20, 40, 50, 12, 20, 32])
+    # collection.addPieces('input/butterfly_01.jpg', 60)
+    # collection.addPieces('input/butterfly_02.jpg', 77)
+    # collection.addPieces('input/butterfly_03.jpg', 60)
+    # collection.addPieces('input/butterfly_04.jpg', 66)
+    # collection.addPieces('input/butterfly_05.jpg', 77)
+    # collection.addPieces('input/butterfly_06.jpg', 60)
+    # collection.addPieces('input/butterfly_07.jpg', 70)
+    # collection.addPieces('input/butterfly_08.jpg', 43)
+    # print(len([piece for piece in collection.pieces if piece.type == 'corner']))
+    # print(len([piece for piece in collection.pieces if piece.type == 'side']))
+    # print(len([piece for piece in collection.pieces if piece.type == 'middle']))
+
+    # all_pieces = collection.getAllPiecesImage(with_details=True)
+    # cv2.imwrite('butterfly_pieces.jpg', all_pieces)
+
+    # collection = PieceCollection(settings=[10, 50, 50, 12, 30, 32])
+    # collection.addPieces('input/tart_puzzle_01.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_02.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_03.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_04.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_05.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_06.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_07.jpg', 28)
+    # collection.addPieces('input/tart_puzzle_08.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_09.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_10.jpg', 30)
+    # collection.addPieces('input/tart_puzzle_11.jpg', 26)
+
+    # collection = PieceCollection(settings=[10, 50, 50, 12, 20, 32])
+    # collection.addPieces('input/travel_puzzle_01.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_02.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_03.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_04.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_05.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_06.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_07.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_08.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_09.jpg', 30)
+    # collection.addPieces('input/travel_puzzle_10.jpg', 12)
+    # collection.addPieces('input/travel_puzzle_11.jpg', 18)
+
+
+    collection = PieceCollection(settings=[20, 40, 50, 14, 16, 64])
+    # collection.addPieces('input/feather_01.jpg', 40)
+    # collection.addPieces('input/feather_02.jpg', 40)
+    collection.addPieces('input/feather_03.jpg', 40)
+    # collection.addPieces('input/feather_04.jpg', 40) 
+    # collection.addPieces('input/feather_05.jpg', 40)
+    # collection.addPieces('input/feather_06.jpg', 40)
+    # collection.addPieces('input/feather_07.jpg', 40)
+    # collection.addPieces('input/feather_08.jpg', 20)
+
+
+    # collection = PieceCollection(settings=[20, 40, 40, 12, 20, 32])
+    # collection.addPieces('input/animals_01.jpg', 77)
+    # collection.addPieces('input/animals_02.jpg', 77)
+    # collection.addPieces('input/animals_03.jpg', 77)
+    # collection.addPieces('input/animals_04.jpg', 77)
+    # collection.addPieces('input/animals_05.jpg', 77)
+    # collection.addPieces('input/animals_06.jpg', 77)
+    # collection.addPieces('input/animals_07.jpg', 47)
+    # collection.addPieces('input/animals_08.jpg', 4)
+
+    # collection = PieceCollection(settings=[10, 30, 30, 14, 24, 32])
+    # collection.addPieces('input/owl_01.jpg', 40)
+    # collection.addPieces('input/owl_02.jpg', 40)
+    # collection.addPieces('input/owl_03.jpg', 40)
+    # collection.addPieces('input/owl_04.jpg', 40)
+    # collection.addPieces('input/owl_05.jpg', 40)
+    # collection.addPieces('input/owl_06.jpg', 40)
+    # collection.addPieces('input/owl_07.jpg', 40)
+    # collection.addPieces('input/owl_08.jpg', 20)
+
+
+
     #collection.showPieceImages()
     #cv2.destroyAllWindows()
 
     print(len([piece for piece in collection.pieces if piece.type == 'corner']))
     print(len([piece for piece in collection.pieces if piece.type == 'side']))
     print(len([piece for piece in collection.pieces if piece.type == 'middle']))
-
-    all_pieces = collection.getAllPiecesImage(with_details=True)
-    cv2.imwrite('shining_all_pieces.png', all_pieces)
+    collection.showPieceImages()
+    # all_pieces = collection.getAllPiecesImage(with_details=True)
+    # cv2.imwrite('shining_all_pieces.png', all_pieces)
