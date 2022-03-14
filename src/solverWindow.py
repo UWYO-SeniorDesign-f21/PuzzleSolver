@@ -1,4 +1,6 @@
 from email.policy import default
+from re import U
+from turtle import pos
 from xmlrpc.client import Boolean
 import pygame
 import time
@@ -25,8 +27,8 @@ class Window:
         self.clicked = False
         self.x = 640
         self.y = 480
-        self.centerScreenx = 600
-        self.centerScreeny = 300
+        self.centerScreenx = (width / 2) + 150
+        self.centerScreeny = height / 2
         self.resultImage = 'test.png'
 
     # Create a window and set its needed settings
@@ -150,10 +152,21 @@ class Window:
 
         # Implementation of Solved Puzzle Section (Puzzle solver output will display using this.)
         testIMG = pygame.image.load(self.resultImage)
+        testIMG.convert()
         testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
         testBorder = testIMG.get_rect()
         testBorder.center = self.centerScreenx, self.centerScreeny
         self.window.blit(testIMG, testBorder)
+        MPOS = pygame.mouse.get_pos()
+
+        #Maybe an Implementation of Mouse Panning (Still in the works.)
+        #if self.clicked and MPOS >= (testBorder.x, testBorder.y):
+            #MPOS = pygame.mouse.get_pos()
+            #print("Trying to Pan Image")
+            #self.centerScreenx = MPOS[0]
+            #self.centerScreeny = MPOS[1]
+            #self.clicked = False
+            #print(MPOS)
 
     def drawAllTheButtons(self):
         # Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
@@ -189,7 +202,7 @@ class Window:
 
         #Right Button Implementation
         goRight = button.Button(
-            u"->",  160, 275, 50, 50,
+            u"->",  (self.width-50), (self.height/2)-50, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         goRight.draw(self.window)
         if self.clicked and goRight.isInButton(self.last_click_x, self.last_click_y):
@@ -200,7 +213,7 @@ class Window:
         
         #Left Button Implementation
         goLeft = button.Button(
-            u"<-", 40, 275, 50, 50,
+            u"<-", (self.width/4), (self.height/2)-50, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         goLeft.draw(self.window)
         if self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y):
@@ -211,23 +224,23 @@ class Window:
         
         #Up Button Implementation
         goUp = button.Button(
-            "U", (100), 240, 50, 50,
+            "^", (self.width/2)-50, 0, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         goUp.draw(self.window)
         if self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
             self.centerScreeny = self.centerScreeny - 50
-            print("Panning to Left?")
+            print("Panning Up?")
 
         # Implements Down Button
         goDown = button.Button(
-            u"D", 100, 300, 50, 50,
+            ('\u2193'), (self.width/2)-50, (self.height-50), 50, 50,
             std_font, off_white, button_selected, button_unselected)
         goDown.draw(self.window)
         if self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y):
             self.clicked = False
             self.centerScreeny = self.centerScreeny + 50
-            print("Panning to Left?")
+            print("Panning Down?")
 
         # Access settings.png from current directory
         THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))

@@ -1,3 +1,8 @@
 src/puzzle1_1Pieces.jpg
-src/__pycache__
 StarWarsPuzzleSimpleSolution.png
+.DS_STORE
+.vscode/
+__pycache__/
+src/.vscode/
+src/__pycache__/
+src/.DS_STORE
