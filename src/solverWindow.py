@@ -3,12 +3,12 @@ from re import U
 from turtle import pos
 from xmlrpc.client import Boolean
 from pieceCollection import showLabels
-from Text_box_class import *
 import pygame
 import time
 import pathlib
 import button
 import fileBox
+import sys
 from tkinter import filedialog
 import os
 vec = pygame.math.Vector2
@@ -21,7 +21,9 @@ def shortenPath(path, new_len):
 
 
 class Text_box:
-    def __init__(self, x, y, width, height, bg_colour=(124, 124, 124), active_colour=(255, 255, 255)):
+    def __init__(self, x, y, width, height, bg_colour=(124, 124, 124), 
+                active_colour=(255, 255, 255), text_size = 18,
+                 text_colour = (0,0,0), border = 0, border_colour = (0,0,0)):
         self.x = x
         self.y = y
         self.width = width
@@ -33,17 +35,49 @@ class Text_box:
         self.active_colour = active_colour
         self.active = False
         self.text = ""
+        self.text_size = text_size
+        self.font = pygame.font.SysFont("Times New Roman", self.text_size)
+        self.text_colour = text_colour
+        self.border = border
+        self.border_colour = border_colour
+
+    def update(self):
+        pass    
 
     def drawTextBox(self, window):
         if not self.active:
-            self.image.fill(self.bg_colour)
+            if self.border == 0:
+                self.image.fill(self.bg_colour)
+            else:
+                self.image.fill(self.border_colour)
+                pygame.draw.rect(self.image, self.bg_colour, 
+                                (self.border, self.border,
+                                self.width-self.border*2, self.height - self.border*2))
+
+            text = self.font.render(self.text, False, self.text_colour)
+            text_height = text.get_height()
+            text_width = text.get_width()
+            self.image.blit(text, (((self.width - text_width)/2),((self.height - text_height)/2)))
         else:
-            self.image.fill(self.active_colour)
+            if self.border == 0:
+                self.image.fill(self.active_colour)
+            else:
+                self.image.fill(self.border_colour)
+                pygame.draw.rect(self.image, self.active_colour, 
+                                (self.border, self.border,
+                                self.width-self.border*2, self.height - self.border*2))
+            text = self.font.render(self.text, False, self.text_colour)
+            text_height = text.get_height()
+            text_width = text.get_width()
+            self.image.blit(text, (((self.width - text_width)/2),((self.height - text_height)/2)))
 
         window.blit(self.image, self.pos)
 
     def add_text(self, key):
-        print(key)
+        text = list(self.text)
+        text.append(chr(key))
+        self.text = "".join(text)
+        print(self.text)
 
     def checkTextClick(self, pos):
         if pos[0] > self.x and pos[0] < self.x + self.width:
@@ -83,9 +117,9 @@ class Window:
         self.settings = False
         self.closeClick = False
         text_boxes.append(
-            Text_box(((self.window.get_width() / 3 * 2)+50), 60, 70, 40))
+            Text_box(((self.window.get_width() / 3 * 2)+ 30), 63, 33, 22, border = 2))
         text_boxes.append(
-            Text_box(((self.window.get_width() / 3 * 2)+150), 60, 70, 40))
+            Text_box(((self.window.get_width() / 3 * 2)+70), 63, 33, 22, border = 2))
 
     # Process all events on the window
 
@@ -109,6 +143,8 @@ class Window:
                         box.add_text(event.key)
 
     # Used to not clutter the render method
+
+
 
     def drawUploadRegion(self):
         # set some frequently used colors
@@ -304,12 +340,17 @@ class Window:
             std_font, off_white, (210, 210, 210), (240, 240, 240))
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
-           # self.clicked = False
+
             pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
                 2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
 
+
         self.window.blit(photo, (self.window.get_width() -
                          60, self.window.get_height()-60))
+
+    def drawDimensionsText(self):
+        self.font = pygame.font.SysFont('Arial', 25)
+        self.window.blit(self.font.render('Enter puzzle dimensions', (255,255,255), (255, 255,255)), ((self.window.get_width()/3)*2, 10))
 
     def drawSettingsButton(self):
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
@@ -357,6 +398,7 @@ class Window:
         closeX = pygame.transform.scale(closeX, DEFAULT_IMAGE_SIZE)
 
         if self.settings:
+            
             settingsClose = button.Button(
                 'x', self.window.get_width() - 60, 0, 55, 55,
                 std_font, off_white, (210, 210, 210), (240, 240, 240))
@@ -399,6 +441,7 @@ class Window:
             self.drawUploadRegion()
             self.drawSettingsScreen()
             self.drawSettingsClose()
+            self.drawDimensionsText()
             self.drawTextBoxes()
 
             if self.closeClick:
