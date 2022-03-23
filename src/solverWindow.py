@@ -2,6 +2,8 @@ from email.policy import default
 from re import U
 from turtle import pos
 from xmlrpc.client import Boolean
+from pieceCollection import showLabels
+from Text_box_class import *
 import pygame
 import time
 import pathlib
@@ -9,11 +11,46 @@ import button
 import fileBox
 from tkinter import filedialog
 import os
+vec = pygame.math.Vector2
 
+text_boxes = []
 
 def shortenPath(path, new_len):
     return pathlib.Path(*pathlib.Path(path).parts[-new_len:]).__str__()
 
+class Text_box:
+    def __init__(self, x, y, width, height, bg_colour = (124,124,124), active_colour = (255,255,255)):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.pos = vec(x,y)
+        self.size = vec(width, height)
+        self.image = pygame.Surface((width,height))
+        self.bg_colour = bg_colour
+        self.active_colour = active_colour
+        self.active = False
+        self.text = ""
+    
+    def drawTextBox(self, window):
+        if not self.active:
+            self.image.fill(self.bg_colour)
+        else:
+            self.image.fill(self.active_colour)
+
+        window.blit(self.image, self.pos)
+
+    def add_text(self,key):
+        print(key)
+
+    def checkTextClick(self, pos):
+        if pos[0] > self.x and pos[0] < self.x + self.width:
+            if pos[1] > self.y and pos[1] < self.y + self.height: 
+               self.active = True
+            else:
+                self.active = False
+        else:
+            self.active = False
 
 class Window:
     # Constructor sets all nessasary variables for creating a window
@@ -29,7 +66,8 @@ class Window:
         self.y = 480
         self.centerScreenx = (width / 2) + 150
         self.centerScreeny = height / 2
-        self.resultImage = 'test.png'
+        self.resultImage = 'result.jpg'
+        self.text_boxes = []
 
     # Create a window and set its needed settings
     def initWindow(self):
@@ -41,14 +79,6 @@ class Window:
         self.paths = []
         self.settings = False
         self.closeClick = False
-#
- #   def settingsWindow(self):
-  #      # Set title
-   #     pygame.display.set_caption("Settings: ")
-    #    # Create drawing surface
-     #   self.window = pygame.display.set_mode([(self.width / 3) * 2, self.height])
-      #  self.curent_add_point = 0
-       # self.paths = []
 
     # Process all events on the window
 
@@ -56,14 +86,23 @@ class Window:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 # Tells loop to stop
+                pygame.quit()
                 self.running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 # get mouse position
                 mouse = pygame.mouse.get_pos()
                 # setup mouse for event handling -> MAKE CERTAIN TO SET self.clicked BACK TO FALSE WHEN EVENT HAS BEEN PROCESSED
-                self.last_click_x = mouse[0]
-                self.last_click_y = mouse[1]
+                self.last_click_x =  mouse[0]  
+                self.last_click_y = mouse[1] 
+                for box in text_boxes: 
+                    box.checkTextClick(mouse) 
                 self.clicked = True
+            if event.type == pygame.KEYDOWN:
+                    for box in text_boxes:
+                        if box.active:
+                            box.add_text(event.key)
+
+
 
     # Used to not clutter the render method
     def drawUploadRegion(self):
@@ -175,6 +214,8 @@ class Window:
         button_selected = (80, 80, 80)
         button_unselected = (50, 50, 50)
 
+        
+
         # Implementation of Zoom In Button
         zoomPlus = button.Button(
             '+', 250, 550, 50, 50,
@@ -264,6 +305,7 @@ class Window:
             pygame.draw.rect(self.window, (150, 150, 150), pygame.Rect(
                 2 * (self.window.get_width() / 3), 0, self.window.get_width(), self.window.get_height()))
 
+   
         self.window.blit(photo, (self.window.get_width() -
                          60, self.window.get_height()-60))
 
@@ -292,8 +334,7 @@ class Window:
         settingsButton.draw(self.window)
         if self.clicked and settingsButton.isInButton(self.last_click_x, self.last_click_y):
             self.settings = True
-           
-            
+                
         self.window.blit(settingsWheel, (self.window.get_width() -
                          60, self.window.get_height()-60))
 
@@ -332,6 +373,12 @@ class Window:
         pygame.draw.rect(self.window, (50, 50, 50), pygame.Rect(2 * (self.window.get_width() / 3),
             0, self.window.get_width(), self.window.get_height()))
 
+    def drawTextBoxes(self):
+        text_boxes.append(Text_box(((self.window.get_width() / 3 * 2)+50), 60, 70, 40))
+        text_boxes.append(Text_box(((self.window.get_width() / 3 * 2)+150), 60, 70, 40))
+        for box in text_boxes: 
+            box.drawTextBox(self.window)
+
 
     def render(self):
         # Clear screen with white
@@ -345,13 +392,15 @@ class Window:
             self.drawUploadRegion()
             self.drawAllTheButtons()
             self.drawSettingsButton()
-       
+ 
            
         else:
             self.drawSolverArea()
             self.drawUploadRegion()
             self.drawSettingsScreen()
-            self.drawSettingsClose()    
+            self.drawSettingsClose()  
+            self.drawTextBoxes(); 
+ 
             if self.closeClick:
                 self.settings = False;
                 self.drawUploadRegion()
@@ -368,6 +417,7 @@ class Window:
     def run(self):
         self.running = True
         self.initWindow()
+
 
         # Set run loop to operate at 72 fps
         fps = 72
