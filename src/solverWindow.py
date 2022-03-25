@@ -141,7 +141,8 @@ class Window:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 # Tells loop to stop
-                os.remove(".titleSolution.jpg")
+                if os.path.exists(".titleSolution.jpg"):
+                    os.remove(".titleSolution.jpg")
                 pygame.quit()
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -289,7 +290,7 @@ class Window:
             if self.clicked and add_button.isInButton(self.last_click_x, self.last_click_y):
                 self.clicked = False
                 path = filedialog.askopenfilename(
-                    filetypes=[('.png', '*.png'), ('.jpg', '*.jpg')])
+                    filetypes=[('jpg', '*.jpg'), ('png', '*.png')])
                 if path != '':
                     pieces = self.popup_mode()
                     self.curent_add_point = self.curent_add_point + 1

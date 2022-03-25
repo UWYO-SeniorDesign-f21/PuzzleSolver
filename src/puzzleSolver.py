@@ -34,12 +34,8 @@ def main():
     #     ('input/300_05.png', 30), ('input/300_06.png', 30), ('input/300_07.png', 30), ('input/300_08.png', 30),
     #     ('input/300_09.png', 30), ('input/300_10.png', 30)], settings=[10, 25, 30, 8, 14, 32])
 
-    # puzzle_solver = PuzzleSolver("tart4", (18, 18), 200, 100,
-    #                              [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30),
-    #                               ('input/tart_puzzle_05.jpg', 30), ('input/tart_puzzle_06.jpg',
-    #                                                                  30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30),
-    #                               ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)],
-    #                              settings=[10, 50, 50, 8, 14, 64])
+    # puzzle_solver = PuzzleSolver("tart4", (18, 18), 200, 100, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
+    #     'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64])
 
     # puzzle_solver = PuzzleSolver("feather11", (21.25, 15), 200, 500,
     #     [('input/feather2_01.jpg', 40),('input/feather2_02.jpg', 40),('input/feather2_03.jpg', 40),('input/feather2_04.jpg', 40),
