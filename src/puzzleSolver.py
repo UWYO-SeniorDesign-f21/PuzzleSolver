@@ -84,21 +84,21 @@ def main():
     #     ('input/pokemonBeach10.png', 34), ('input/pokemonBeach11.png', 34), ('input/pokemonBeach12.png', 19)],
     #     settings=[10, 25, 30, 6, 20, 64])
 
-    # puzzle_solver = PuzzleSolver("waterfront4", (54, 38), 500, 1000, 
-    #     [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
-    #     ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
-    #     ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
-    #     ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
-    #     settings=[30, 50, 50, 8, 14, 64], sides_first=False)
+    puzzle_solver = PuzzleSolver("waterfront4", (54, 38), 500, 200, 
+        [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
+        ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
+        ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
+        ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
+        settings=[30, 50, 50, 8, 14, 64], sides_first=False)
 
-    puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 1000,
-        [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
-        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
-        ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
-        ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
-        ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
-        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
-        settings=[30, 50, 50, 10, 20, 64], sides_first=False)
+    # puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 1000,
+    #     [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
+    #     ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
+    #     ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
+    #     ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
+    #     ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
+    #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
+    #     settings=[30, 50, 50, 10, 20, 64], sides_first=False)
 
     # # # # # use LAB
 
@@ -247,7 +247,7 @@ class PuzzleSolver:
 
         self.solutions = sorted(self.solutions, key=lambda x: x.score)
         
-        include = self.solutions[:max(1, self.gen_size//20)]
+        include = self.solutions[:min(10, len(self.collection.pieces) // 20)]
 
         selection = select_all(self.solutions, self.gen_size//4, 4, include=include)
         # for i, solution in enumerate(selection):
@@ -291,7 +291,7 @@ class PuzzleSolver:
             # if parent1.score == parent2.score:
             #     counter += 1
             #     continue
-            solver = parent1.crossover(parent2)
+            solver = parent1.crossover(parent2, just_sides=self.sides_first)
 
             self.solutions.append(solver)
             # print(parent1_num, parent2_num, len(new_solutions) - 1)
@@ -426,9 +426,9 @@ class PuzzleSolver:
                     remove_edge = random.choice(list(new_include_edges))
                     new_include_edges.remove(remove_edge)
                 solver.solvePuzzle(start=random.choice(
-                    side_pieces), include_edges=include_edges)
+                    side_pieces), include_edges=include_edges, just_sides=just_sides)
             else:
-                solver.solvePuzzle(random_start=True)
+                solver.solvePuzzle(random_start=True, just_sides=just_sides)
             # image = solver.getSolutionImage()
             # h, w, _ = image.shape
             # cv2.imshow('solution', cv2.resize(image, (int(500 * (w/h)), 500), interpolation=cv2.INTER_AREA))
@@ -587,8 +587,9 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
     min_color_diff_hist = float('inf')
     max_corner_diff = 0
     min_corner_diff = float('inf')
+    print('initial dists\n')
     for i, piece1 in enumerate(pieces):
-        print(piece1.label)
+        print(piece1.label, end=' ', flush=True)
         for piece2 in pieces[i+1:]:
             if piece1 == piece2:
                 continue
@@ -628,21 +629,19 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
 
     num_edges = 4*num_middle_pieces + 3*num_side_pieces + 2*4
 
-    best_sides = [float('inf') for _ in range(num_edges*2)]
-
     sorted_dists = {}
-    num_sorted = max(10, len(pieces) // 30)
-
+    
     for piece1 in pieces:
         for edge1 in range(4):
-            sorted_dists[(piece1, edge1)] = [((None, None), float('inf'))
-                                             for _ in range(num_sorted)]
+            if piece1.edges[edge1].label == 'flat':
+                continue
+            sorted_dists[(piece1, edge1)] = []
 
+    print('\n\nnormalizing ... \n')
     max_dist = 0
     for i, piece1 in enumerate(pieces):
-        print(piece1.label)
+        print(piece1.label, end=' ', flush=True)
         for edge1 in range(4):
-            dist_list = []
             for piece2 in pieces[i+1:]:
                 for edge2 in range(4):
                     entry = piece1.edges[edge1].compare(piece2.edges[edge2])
@@ -661,42 +660,66 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
                     if dist < float('inf'):
                         if dist > max_dist:
                             max_dist = dist
-                        if dist < best_sides[-1]:
-                            best_sides[-1] = dist
-                            best_sides = sorted(best_sides)
-                        if dist < sorted_dists[(piece1, edge1)][-1][1]:
-                            sorted_dists[(piece1, edge1)][-1] = ((piece2, edge2), dist)
-                            sorted_dists[(piece1, edge1)] = sorted(
-                                sorted_dists[(piece1, edge1)], key=lambda x: x[1])
-                        if dist < sorted_dists[(piece2, edge2)][-1][1]:
-                            sorted_dists[(piece2, edge2)][-1] = ((piece1, edge1), dist)
-                            sorted_dists[(piece2, edge2)] = sorted(
-                                sorted_dists[(piece2, edge2)], key=lambda x: x[1])
-    cutoff = best_sides[-1] + 1
+                        sorted_dists[(piece1, edge1)].append(((piece2, edge2), dist))
+                        sorted_dists[(piece2, edge2)].append(((piece1, edge1), dist))
+    cutoff = float('inf')
 
+    best_edges = {}
+    max_num_edges_to_check = 3
+    print('\n\nsorting ...\n')
     for piece1 in pieces:
+        print(piece1.label, end=' ', flush=True)
         for edge1 in range(4):
-            sorted_dists[(piece1, edge1)] = [
-                entry for entry in sorted_dists[(piece1, edge1)] if entry[1] != float('inf')]
+            entry = sorted_dists.get((piece1, edge1))
+            if entry is None:
+                continue
+            sorted_dists[(piece1, edge1)] = sorted(entry, key=lambda x: x[1])
+            best_edges[(piece1, edge1)] = sorted_dists[(piece1, edge1)][:max_num_edges_to_check]
 
+    print('\n\nfinding best buddies\n')
     buddy_edges_set = set()
-    for piece1, edge1 in sorted_dists.keys():
-        piece1.edges[edge1].clear()
+    prev_piece = None
+    for piece1, edge1 in best_edges.keys():
+        if piece1 != prev_piece:
+            print(piece1.label, end=' ', flush=True)
+            prev_piece = piece1
+        # piece1.edges[edge1].clear()
         if piece1.edges[(edge1 - 1) % 4].label == 'flat' or piece1.edges[(edge1 + 1) % 4].label == 'flat':
             num_edges_to_check = 1
         else:
-            num_edges_to_check = 3
-        entries = sorted_dists[(piece1, edge1)][:num_edges_to_check]
+            num_edges_to_check = max_num_edges_to_check
+        entries = best_edges[(piece1, edge1)][:num_edges_to_check]
         # print([entry[1] for entry in entries])
         for entry, dist in entries:
             # entry, dist = sorted_dists[(piece1, edge1)]
             piece2, edge2 = entry
-            if (piece1, edge1) == sorted_dists[(piece2, edge2)][0][0]:
+            if (piece1, edge1) == best_edges[(piece2, edge2)][0][0]:
                 buddy_edges_set.add(((piece1, edge1, piece2, edge2), dist))
     buddy_edges_list = sorted([buddy for buddy in buddy_edges_set], key=lambda x:x[1])
     buddy_edges = [buddy[0] for buddy in buddy_edges_list]
-    print(len(buddy_edges))
+    print(f'\n\n\nnum best buddies::: {len(buddy_edges)}\n\n')
     return dist_dict, sorted_dists, buddy_edges, max_dist, cutoff
+
+def insertIntoList(arr, entry):
+    l = 0
+    h = len(arr)
+    index = 0
+    while l < h:
+        mid = (h + l) // 2
+        if mid - 1 > 0 and mid + 1 < len(arr) and arr[mid - 1][1] < entry[1] and arr[mid + 1][1] > entry[1]:
+            index = mid
+            break
+        
+        if arr[mid][1] < entry[1]:
+            l = mid + 1
+        elif arr[mid[1]] > entry[1]:
+            h = mid - 1
+        else:
+            index = mid
+            break
+    
+
+            
 
 
 def getDist(dist_dict, edge):
