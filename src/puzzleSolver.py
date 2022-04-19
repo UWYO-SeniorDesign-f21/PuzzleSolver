@@ -93,11 +93,11 @@ def main():
 
     puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 1000,
         [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
-        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 42),
+        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
         ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
         ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
         ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
-        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 35)], 
+        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
         settings=[30, 50, 50, 10, 20, 64], sides_first=False)
 
     # # # # # use LAB
