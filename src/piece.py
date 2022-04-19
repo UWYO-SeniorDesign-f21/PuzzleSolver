@@ -29,9 +29,15 @@ class Piece:
         self.getEdgeColors()
         self.findType()
 
-    def getSubimage(self, edge_up, with_details=False, resize_factor=1):
+    def getSubimage(self, edge_up, with_details=False, resize_factor=1, draw_edges=[]):
         image = self.image.copy()
         h, w, _ = image.shape
+
+        for edge in range(4):
+            if edge in draw_edges and len(draw_edges) == 4:
+                cv2.drawContours(image, self.edges[edge].contour, -1, (0,255,0), thickness=10)
+            # else:
+            #     cv2.drawContours(image, self.edges[edge].contour, -1, (0,0,255), thickness=20)
 
         # get the corners on either end of the piece to be displayed on top
         c1 = self.corners[edge_up - 1][1:]
@@ -104,9 +110,101 @@ class Piece:
         final_image = cv2.resize(final_image, (int(r * resize_factor), int(r * resize_factor)), interpolation=cv2.INTER_AREA)
         return final_image
 
-    def getAdjustedCorners(self, center, radius, angle):
+
+    def getSubimage2(self, edge_up, with_details=False, resize_factor=1, draw_edges=[], rel_edge=0, line_width=0):
+        image = self.image.copy()
+        h, w, _ = image.shape
+
+        for edge in range(4):
+            if edge in draw_edges and len(draw_edges) == 4:
+                cv2.drawContours(image, self.edges[edge].contour, -1, (0,255,0), thickness=10)
+            # else:
+            #     cv2.drawContours(image, self.edges[edge].contour, -1, (0,0,255), thickness=20)
+
+        cv2.drawContours(image, self.contour, -1, (0,0,0), thickness=line_width)
+
+        # find a circle that encloses the piece in the image
+        (x,y), r = cv2.minEnclosingCircle(self.contour)
+        x = int(x)
+        y = int(y)
+        r = int(r)
+
+        # adjust the circle if it would go over bounds of image
+        if y - r < 0:
+            y = r
+        if x - r < 0:
+            x = r
+
+        h, w, _ = self.image.shape
+        
+        lpad = rpad = tpad = bpad = 0
+        if y - r < 0:
+            tpad = -(y - r)
+        if x - r < 0:
+            lpad = -(x - r)
+
+        # isolate the piece in the image
+        mask = np.zeros_like(image)
+        cv2.drawContours(mask, [self.contour], -1, (255,255,255), thickness=-1)
+        image_piece_isolated = cv2.bitwise_and(mask, image)
+
+        if with_details:
+            for i, corner in enumerate(self.corners):
+                prev = self.corners[i-1]
+                cv2.circle(image_piece_isolated, (int(corner[1]), int(corner[2])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+                cv2.line(image_piece_isolated, (int(corner[1]), int(corner[2])), (int(prev[1]), int(prev[2])), 
+                        (0,255,0), thickness=1)
+
+            for i, edge in enumerate(self.edges):
+                if edge.label == 'flat':
+                    color = (255,0,255)
+                elif edge.label == 'inner':
+                    color = (255,0,0)
+                else:
+                    color = (0,0,255)
+
+                cv2.drawContours(image_piece_isolated, edge.contour, -1, color, thickness=5)
+
+        # crop to the circle
+        image_crop = image_piece_isolated[max(y-r, 0):min(y+r, h),max(x-r, 0):min(x+r, w)]
+        h1, w1, _ = image_crop.shape
+
+        padded_image = np.zeros((2*r, 2*r, 3), dtype=np.uint8)
+        padded_image[tpad:tpad+h1, lpad:lpad+w1] = image_crop
+
+        ph, pw, _ = padded_image.shape
+
+        # get the corners on either end of the piece to be displayed on top
+        c1 = self.corners[(edge_up + rel_edge) % 4 - 1][1:]
+        c2 = self.corners[(edge_up + rel_edge) % 4][1:]
+
+        # get the slope of the line to be on top
+        delta = c1 - c2
+        dx, dy = delta[0], delta[1]
+
+        # if the line is vertical, rotate 90 degrees
+        if dx == 0:
+            angle = 90
+        else: # otherwise, rotate arctan (change in y / change in x) degrees
+            angle = math.degrees(math.atan(dy / dx))
+
+        # if the intended edge will actually be on the bottom
+        if( c2[0] < c1[0] or (c2[0] == c1[0] and c2[1] < c1[1])): # need to rotate more!
+            angle = angle + 180 # flip 180 degrees
+
+        angle -= 90 * rel_edge
+
+        final_image = imutils.rotate(padded_image, angle) # rotate the image
+        final_image = cv2.resize(final_image, (int(ph * resize_factor), int(pw * resize_factor)), interpolation=cv2.INTER_AREA)
+        
+        return final_image, self.getAdjustedCorners(edge_up, (x, y), r, angle, resize_factor)
+
+    def getAdjustedCorners(self, edge_up, center, radius, angle, resize_factor):
         new_corners = []
-        for i, corner in enumerate(self.corners):
+        for i in range(edge_up - 1, edge_up + 3):
+            index = i % 4
+            corner = self.corners[index]
+        # for i, corner in enumerate(self.corners):
             x_old = corner[1]
             y_old = corner[2]
             # adjust so pivot is at origin
@@ -118,20 +216,21 @@ class Piece:
             # now add the radius so the corner is at the correct position in the subimage
             x_new += radius
             y_new += radius
-            new_corners.append((int(x_new), int(y_new)))
-        return new_corners
+            new_corners.append((np.array([x_new, y_new]) * resize_factor).astype(int))
+        return np.array(new_corners)
 
 
     def findCorners(self):
 
-        dist = len(self.contour) // 128
-        sharpdist = len(self.contour) // 128 # two dots on each side
-        prominence = 0.5
+        dist = len(self.contour) // 64
+        sharpdist = len(self.contour) // 64 # two dots on each side
+        prominence = 0
 
         center = np.mean(self.contour[:,0], axis=0)
         centered_contour = self.contour - center
-
+        
         rho, phi = cart2pol(centered_contour[:,0,0], centered_contour[:,0,1])
+        # rho = running_average(rho, 5)
         rho = running_average(rho, 15)
         rho2 = np.concatenate((rho, rho, rho))
         peaks, _ = find_peaks(rho2, distance=dist, prominence=prominence)
@@ -140,22 +239,33 @@ class Piece:
         peaks -= len(rho)
         
         # peak with most extreme value
-        rho_max = np.max(rho[peaks])
+        # rho_max = np.max(rho[peaks])
 
         # find the differences between the peak height and the points on either side
         # normalize so that the peak height is treated to be the same as rho_max
         # remove peaks that are not higher than the points on the left and right
-        diff_left = rho_max - rho_max * rho[(peaks-sharpdist) % len(rho)] / rho[peaks]
-        diff_right = rho_max - rho_max * rho[(peaks+sharpdist) % len(rho)] / rho[peaks]
+        # diff_left = rho_max - rho_max * rho[(peaks-sharpdist) % len(rho)] / rho[peaks]
+        # diff_right = rho_max - rho_max * rho[(peaks+sharpdist) % len(rho)] / rho[peaks]
 
+        p1s = self.contour[(peaks - sharpdist) % len(self.contour)]
+        p2s = self.contour[peaks]
+        p3s = self.contour[(peaks + sharpdist) % len(self.contour)]
+
+        d1 = p2s - p1s
+        d2 = p3s - p2s
+        
+        delta = d1[:,0] - d2[:,0]
+        sharpness = np.linalg.norm(delta, axis=1)
         # find a metric for sharpness by multiplying these values
-        sharpness = (diff_left * diff_right)
-        peaks = peaks[np.where(sharpness > 0)]
-        sharpness = sharpness[np.where(sharpness > 0)]
+        # sharpness = (diff_left * diff_right)
 
         # for peak in peaks:
-        #     cv2.circle(image, (int(contour[peak, 0, 0]), int(contour[peak, 0, 1])), 10, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
+        #     cv2.circle(self.image, (int(self.contour[peak, 0, 0]), int(self.contour[peak, 0, 1])), 20, (255, 0, 128), thickness=-1, lineType=cv2.FILLED)
 
+
+        peaks = peaks[np.where(sharpness > 0)]
+        sharpness = sharpness[np.where(sharpness > 0)]
+    
         # reduce the peaks to be just the corners
         peaks = self.pickBestPeaks( peaks, sharpness )
 
@@ -200,35 +310,42 @@ class Piece:
                     for l in range(k+1, len(peaks)):
                         peak4 = peaks[l]
                         img2 = np.zeros_like(img3)
-                        point1 = [self.contour[peak1][0][0],  self.contour[peak1][0][1]]
-                        point2 = [self.contour[peak2][0][0],  self.contour[peak2][0][1]]
-                        point3 = [self.contour[peak3][0][0],  self.contour[peak3][0][1]]
-                        point4 = [self.contour[peak4][0][0],  self.contour[peak4][0][1]]
+                        point1 = [adj_contour[peak1][0][0],  adj_contour[peak1][0][1]]
+                        point2 = [adj_contour[peak2][0][0],  adj_contour[peak2][0][1]]
+                        point3 = [adj_contour[peak3][0][0],  adj_contour[peak3][0][1]]
+                        point4 = [adj_contour[peak4][0][0],  adj_contour[peak4][0][1]]
 
                         points = np.array([point1, point2, point3, point4])
-                        adj_points = points - [x-r, y-r]
-                        cv2.fillPoly(img2, pts=[adj_points], color =255)
+                        # adj_points = points - [x-r, y-r]
+                        cv2.fillPoly(img2, pts=[points], color =255)
                         img4 = cv2.bitwise_and(img2, img3)
 
                         covered_area = np.sum(img4 == 255)
 
-
-                        rect = cv2.minAreaRect(points)
+                        x,y,w,h = cv2.boundingRect(points)
+                        rect = ((x, y), (w, h), 0)
+                        # rect = cv2.minAreaRect(points)
                         box = cv2.boxPoints(rect)
                         box = np.int0(box)
+                        
+                        # img_rect = img3.copy()
+                        # cv2.rectangle(img_rect, (x, y), (x+w, y+h), 128, 1)
+                        # cv2.imshow('img_rect', img_rect)
+                        # cv2.waitKey(0)
 
                         area_rect = cv2.contourArea(box)
-                        area_points = cv2.contourArea(np.array([self.contour[peak1], self.contour[peak2], self.contour[peak3], self.contour[peak4]]))
+                        area_points = cv2.contourArea(np.array([adj_contour[peak1], adj_contour[peak2], adj_contour[peak3], adj_contour[peak4]]))
 
                         bad_area = area_points - covered_area
 
                         # maximum when points form perfect rectangle
                         if area_rect > 0:
-                            score_rect = (area_points / area_rect)**(1/4)
+                            score_rect = (area_points / area_rect) ** (1/2)
+                            # score_rect = (area_points / area_rect)
                         else:
                             score_rect = 0
 
-                        score_sharp = ((sharpness[i] + sharpness[j] + sharpness[k] + sharpness[l]))**(1/4)
+                        score_sharp = ((sharpness[i] + sharpness[j] + sharpness[k] + sharpness[l]) - max(sharpness[i], sharpness[j], sharpness[k], sharpness[l]))**(1/4)
                         score = (covered_area)*score_rect*score_sharp
 
                         if score > maxScore:
@@ -286,15 +403,20 @@ class Piece:
         h1, w1, _ = image_crop.shape
 
         padded_image = np.zeros((2*r, 2*r, 3), dtype=np.uint8)
-        padded_image[tpad:tpad+h1, lpad:lpad+w1] = image_crop
+        padded_image[tpad:tpad+h1, lpad:lpad+w1] = cv2.cvtColor(image_crop, cv2.COLOR_BGR2LAB)
+        padded_image[:,:,0] = padded_image[:,:,0] // 4
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
 
         adj_contour = self.contour - [x-r+lpad, y-r+tpad]
         piece_mask = np.zeros((2*r, 2*r), dtype=np.uint8)
 
         cv2.drawContours(piece_mask, [adj_contour], -1, 255, thickness=-1)
-        piece_mask_show = np.zeros((2*r, 2*r, 3), dtype=np.uint8)
+        piece_mask = cv2.erode(piece_mask, kernel, iterations=1)
+
+        piece_mask_show = np.zeros_like(padded_image)
+
+        # color_images = []
 
         for i, edge in enumerate(self.edges):
             adj_contour = edge.contour - [x-r+lpad, y-r+tpad]
@@ -302,33 +424,66 @@ class Piece:
             img_show = np.zeros((2*r, 2*r, 3), dtype=np.uint8)
             edge_colors = None
             edge_color_hists = []
-            for i in range(2, edge.points_per_side):
-                p1 = adj_contour[i-2][0]
-                p2 = adj_contour[i][0]
-                dx, dy = p2 - p1
-                if dx == 0 and dy == 0:
-                    continue
-                
-                p1 = p1 + ((self.settings[0]/np.linalg.norm([-dy, dx]))*np.array([-dy, dx])).astype(int)
-                p4 = p1 + ((self.settings[1]-self.settings[0])/np.linalg.norm([-dy, dx])*np.array([-dy, dx])).astype(int)
 
-                p2 = p2 + ((self.settings[0]/np.linalg.norm([-dy, dx]))*np.array([-dy, dx])).astype(int)
-                p3 = p2 + ((self.settings[1]-self.settings[0])/np.linalg.norm([-dy, dx])*np.array([-dy, dx])).astype(int)
+            hist_mask = np.zeros_like(edge_mask)
+            hist_indices = np.linspace(2, edge.points_per_side - 3, max(4, edge.points_per_side // 8)).astype(int)[1:]
+            
+            starting_points = []
+            corresponding_points = []
+            for j in range(0, edge.points_per_side-1):
+                
+
+                if j == edge.points_per_side - 1:
+                    p1 = adj_contour[j][0]
+                    p2 = adj_contour[j-1][0]
+                    dx, dy = p1 - p2
+                else:
+                    p1 = adj_contour[j][0]
+                    p2 = adj_contour[j+1][0]
+                    dx, dy = p2 - p1
+
+                if dx == 0 and dy == 0:
+                    if j > 0:
+                        starting_points.append(starting_points[-1])
+                        corresponding_points.append(corresponding_points[-1])
+                        continue
+                    else:
+                        dx, dy = adj_contour[j+2][0] - p1
+
+                perp_vector = ((1/np.linalg.norm([-dy, dx]))*np.array([-dy, dx]))
+                
+                starting_points.append((p1 + self.settings[0]*perp_vector).astype(int))
+                corresponding_points.append((p1 + (self.settings[1] - self.settings[0])*perp_vector).astype(int))
+
+            for j in range(2, edge.points_per_side-2):
+                p1 = starting_points[j-1]
+                p2 = starting_points[j+1]
+                p3 = corresponding_points[j-1]
+                p4 = corresponding_points[j+1]
+                # dx, dy = p2 - p1
+                # if dx == 0 and dy == 0:
+                #     continue
+                
+                
+                # p1 = p1 + ((self.settings[0]/np.linalg.norm([-dy, dx]))*np.array([-dy, dx])).astype(int)
+                # p4 = p1 + ((self.settings[1]-self.settings[0])/np.linalg.norm([-dy, dx])*np.array([-dy, dx])).astype(int)
+
+                # p2 = p2 + ((self.settings[0]/np.linalg.norm([-dy, dx]))*np.array([-dy, dx])).astype(int)
+                # p3 = p2 + ((self.settings[1]-self.settings[0])/np.linalg.norm([-dy, dx])*np.array([-dy, dx])).astype(int)
 
                 edge_mask_2 = np.zeros((2*r, 2*r), dtype=np.uint8)
-                cv2.drawContours(edge_mask_2, [np.array([p1, p2, p3, p4])], -1, 255, thickness=-1)
+                cv2.drawContours(edge_mask_2, [np.array([p1, p3, p4, p2])], -1, 255, thickness=-1)
 
                 edge_mask_2 = cv2.bitwise_and(edge_mask_2, piece_mask)
-                # edge_mask_2 = cv2.erode(edge_mask_2, kernel, iterations=5)
+                hist_mask = cv2.bitwise_or(hist_mask, edge_mask_2)
+
                 color_avg = cv2.mean(padded_image, mask=edge_mask_2)
                 color = np.array([color_avg[0], color_avg[1], color_avg[2]])
 
-
-                # edge_mask_show = np.zeros((2*r, 2*r, 3), dtype=np.uint8)
-                # edge_mask_show[edge_mask_2 > 0] = color
-
-                # piece_mask_show[edge_mask_2 > 0] = color 
+                # piece_mask_show[edge_mask_2 > 0] = padded_image[edge_mask_2 > 0]
                 # cv2.imshow('em2', piece_mask_show)
+                # if j % 4 == 0:
+                #     color_images.append(piece_mask_show.copy())
                 # cv2.waitKey(20)
 
                 if edge_colors is None:
@@ -336,12 +491,18 @@ class Piece:
                 else:
                     edge_colors = np.vstack((edge_colors, color))
 
-                hist = cv2.calcHist([padded_image], [0, 1, 2], edge_mask_2, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-                cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
-                edge_color_hists.append(hist)
+                if np.any(hist_indices == j):
+                    hist = cv2.calcHist([padded_image], [0, 1, 2], hist_mask, [16, 16, 16], [0, 256, 0, 256, 0, 256])
+                    cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                    edge_color_hists.append(hist)
+
+                    # cv2.imshow('hist', hist_mask)
+                    # cv2.waitKey(400)
+                    hist_mask = np.zeros_like(hist_mask)
+
 
             edge.color_arr = edge_colors
-            edge.color_hists = np.array(edge_color_hists)
+            edge.color_hists = edge_color_hists
             #edge_mask = cv2.erode(edge_mask, kernel, iterations=6)
 
             # show_edge = cv2.bitwise_and(image, np.dstack((edge_mask, edge_mask, edge_mask)))
@@ -353,6 +514,17 @@ class Piece:
 
             #edge.setColorHistogram(hist)
 
+
+        # cv2.imshow('em2', piece_mask_show)
+        # cv2.waitKey(0)
+
+        
+        # for j in range(64):
+        #     color_images.append(color_images[-1])
+        # cv2.imshow('color_img', color_images[-1])
+        # import imageio
+        # imageio.mimsave(f'C:/Users/jimmy/Documents/SeniorDesign/PuzzleSolver/piece_gif.gif', color_images)
+        # cv2.waitKey(0)
 
     def findType(self):
         # get the number of flat edges on the piece

@@ -66,7 +66,7 @@ class Edge:
         for i, hist1 in enumerate(self.color_hists):
             hist2 = color_hists_2[i]
             color_diff_2 += (1 - cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL))**2
-        color_diff_2 = color_diff_2
+        color_diff_2 = math.sqrt(color_diff_2)
         corner_dist_diff = abs(self.corner_dist - other_edge.corner_dist)
         corner_dist_ratio = max(self.corner_dist, other_edge.corner_dist) / min(self.corner_dist, other_edge.corner_dist)
         # print(color_diff, color_diff_old)
@@ -120,7 +120,6 @@ class Edge:
 
         interp = interpolate.interp1d(dists, range(len(contour)), kind="linear")
         pts = interp(desired_distances).astype(int)
-        pts = np.unique(pts)
 
         interp_cont_x = interpolate.interp1d(dists, contour[:,0,0], kind="linear")
         interp_cont_y = interpolate.interp1d(dists, contour[:,0,1], kind="linear")
