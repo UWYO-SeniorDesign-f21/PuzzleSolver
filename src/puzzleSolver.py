@@ -631,11 +631,12 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
     best_sides = [float('inf') for _ in range(num_edges*2)]
 
     sorted_dists = {}
+    num_sorted = max(10, len(pieces) // 30)
 
     for piece1 in pieces:
         for edge1 in range(4):
             sorted_dists[(piece1, edge1)] = [((None, None), float('inf'))
-                                             for _ in range(len(pieces) // 4)]
+                                             for _ in range(num_sorted)]
 
     max_dist = 0
     for i, piece1 in enumerate(pieces):
@@ -681,8 +682,6 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
     buddy_edges_set = set()
     for piece1, edge1 in sorted_dists.keys():
         piece1.edges[edge1].clear()
-        sorted_dists[(piece1, edge1)] = sorted(
-            sorted_dists[(piece1, edge1)], key=lambda x: x[1])
         if piece1.edges[(edge1 - 1) % 4].label == 'flat' or piece1.edges[(edge1 + 1) % 4].label == 'flat':
             num_edges_to_check = 1
         else:
@@ -690,17 +689,13 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
         entries = sorted_dists[(piece1, edge1)][:num_edges_to_check]
         # print([entry[1] for entry in entries])
         for entry, dist in entries:
-            if dist > (weight_dist + weight_color + weight_color_hist + weight_length_diff) / 8:
-                continue
             # entry, dist = sorted_dists[(piece1, edge1)]
             piece2, edge2 = entry
-            sorted_dists[(piece2, edge2)] = sorted(
-                sorted_dists[(piece2, edge2)], key=lambda x: x[1])
             if (piece1, edge1) == sorted_dists[(piece2, edge2)][0][0]:
                 buddy_edges_set.add(((piece1, edge1, piece2, edge2), dist))
     buddy_edges_list = sorted([buddy for buddy in buddy_edges_set], key=lambda x:x[1])
     buddy_edges = [buddy[0] for buddy in buddy_edges_list]
-
+    print(len(buddy_edges))
     return dist_dict, sorted_dists, buddy_edges, max_dist, cutoff
 
 
