@@ -1300,14 +1300,14 @@ class PuzzleSolution:
 
         for x in range(num_sections_x):
             for y in range(num_sections_y):
-                if x == 0 and y == 0:
+                if y == 0:
                     direction = 0
-                elif x == num_sections_x - 1 and y == 0:
-                    direction = 1
-                elif x == num_sections_x - 1 and y == num_sections_y - 1:
+                elif y == num_sections_y - 1:
                     direction = 2
-                elif x == 0 and y == num_sections_y - 1:
+                elif x == 0:
                     direction = 3
+                else:
+                    direction = 1
                 img_xy, corners_xy = self.getPartialSolutionImage(x_midpoints[x] + 1, 
                                     x_midpoints[x+1] - 1, y_midpoints[y] + 1, 
                                     y_midpoints[y+1] - 1, max_size, direction, resize_factor=resize_factor)
@@ -1561,9 +1561,8 @@ class PuzzleSolution:
                     # desired_corner_poses[0] = corner_poses[0]
                     desired_corner_poses[corner_order[3]] = desired_corner_poses[corner_order[0]] + (left_corners[corner_order[2]] - left_corners[corner_order[1]])
 
-                if not (y == min_y and rel_edge == 0) and not above_corners is None:
+                if not above_corners is None:
                     desired_corner_poses[corner_order[1]] = desired_corner_poses[corner_order[0]] + (above_corners[corner_order[2]] - above_corners[corner_order[3]])
-
                 if x == max_x and rel_edge == 1:
                     desired_corner_poses[corner_order[2]] = desired_corner_poses[corner_order[1]] + (corner_poses[corner_order[2]] - corner_poses[corner_order[1]])
                 elif y == max_y and rel_edge == 2:
