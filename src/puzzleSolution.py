@@ -1289,8 +1289,8 @@ class PuzzleSolution:
             num_sections_x = 2
             num_sections_y = 2
         else:
-            num_sections_x = (w // 7)
-            num_sections_y = (h // 7)
+            num_sections_x = max(2, (w // 3))
+            num_sections_y = max(2, (h // 3))
 
         x_midpoints = np.around(np.linspace(min_x - 1, max_x + 1, num_sections_x + 1)).astype(int)
         y_midpoints = np.around(np.linspace(min_y - 1, max_y + 1, num_sections_y + 1)).astype(int)
@@ -1556,11 +1556,12 @@ class PuzzleSolution:
                 corner_poses = corner_poses.astype(np.float32)
                 desired_corner_poses = (corner_poses + np.array([pw/2, ph/2])).astype(np.float32)
 
+                
                 if not left_corners is None:
                     # desired_corner_poses[0] = corner_poses[0]
                     desired_corner_poses[corner_order[3]] = desired_corner_poses[corner_order[0]] + (left_corners[corner_order[2]] - left_corners[corner_order[1]])
 
-                if not above_corners is None:
+                if not (y == min_y and rel_edge == 0) and not above_corners is None:
                     desired_corner_poses[corner_order[1]] = desired_corner_poses[corner_order[0]] + (above_corners[corner_order[2]] - above_corners[corner_order[3]])
 
                 if x == max_x and rel_edge == 1:

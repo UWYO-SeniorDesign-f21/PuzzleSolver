@@ -40,9 +40,9 @@ def main():
     #     ('input/300_05.png', 30), ('input/300_06.png', 30), ('input/300_07.png', 30), ('input/300_08.png', 30),
     #     ('input/300_09.png', 30), ('input/300_10.png', 30)], settings=[10, 25, 30, 8, 14, 32])
 
-    # puzzle_solver = PuzzleSolver("tart2", (18, 18), 200, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
-    #     'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
-    #     sides_first=False)
+    puzzle_solver = PuzzleSolver("tart2", (18, 18), 200, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
+        'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
+        sides_first=False)
 
     # puzzle_solver = PuzzleSolver("feather", (21.25, 15), 200, 200,
     #     [('input/feather2_01.jpg', 40),('input/feather2_02.jpg', 40),('input/feather2_03.jpg', 40),('input/feather2_04.jpg', 40),
@@ -90,14 +90,14 @@ def main():
     #     ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
     #     settings=[30, 50, 50, 8, 14, 64], sides_first=False)
 
-    puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 500,
-        [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
-        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
-        ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
-        ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
-        ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
-        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
-        settings=[30, 50, 50, 10, 16, 64], sides_first=False)
+    # puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 500,
+    #     [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
+    #     ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
+    #     ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
+    #     ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
+    #     ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
+    #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
+    #     settings=[30, 50, 50, 10, 16, 64], sides_first=False)
 
     # # # # # use LAB
 
@@ -129,6 +129,8 @@ class PuzzleSolver:
         self.generation_counter = 0
 
         self.num_threads = 1
+
+        self.begin_timer = timer()
 
         # mutation parameters:
         self.min_exp = 1
@@ -168,6 +170,7 @@ class PuzzleSolver:
                     prev_best = round(self.best_solution.score, 3)
                 else:
                     gens_since_improved += 1
+                print(f'\nTime since started: {timer() - self.begin_timer:.2f}')
                 if gens_since_improved >= 30:
                     break
                 
@@ -188,6 +191,7 @@ class PuzzleSolver:
                     prev_best = round(self.best_solution.score, 3)
                 else:
                     gens_since_improved += 1
+                print(f'\nTime since started: {timer() - self.begin_timer:.2f}')
                 # if gens_since_improved >= 10:
                 #     break
         else:
@@ -202,6 +206,7 @@ class PuzzleSolver:
                     prev_best = round(self.best_solution.score, 3)
                 else:
                     gens_since_improved += 1
+                print(f'\nTime since started: {timer() - self.begin_timer:.2f}\n')
                 # if gens_since_improved >= 10:
                 #     break
         print(
@@ -257,7 +262,7 @@ class PuzzleSolver:
         #     img = solution.getSolutionImage()
         #     cv2.imwrite(f'Selection{i}Pokemon_gen{self.generation_counter}.jpg', img)
 
-        print(sorted([solver.score for solver in selection]))
+        # print(sorted([solver.score for solver in selection]))
 
         self.solutions = None
         gc.collect()
