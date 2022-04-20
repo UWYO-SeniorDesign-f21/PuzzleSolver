@@ -1289,8 +1289,8 @@ class PuzzleSolution:
             num_sections_x = 2
             num_sections_y = 2
         else:
-            num_sections_x = max(2, (w // 3))
-            num_sections_y = max(2, (h // 3))
+            num_sections_x = max(2, (w // 9))
+            num_sections_y = max(2, (h // 9))
 
         x_midpoints = np.around(np.linspace(min_x - 1, max_x + 1, num_sections_x + 1)).astype(int)
         y_midpoints = np.around(np.linspace(min_y - 1, max_y + 1, num_sections_y + 1)).astype(int)
