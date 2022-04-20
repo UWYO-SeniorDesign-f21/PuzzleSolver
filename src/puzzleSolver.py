@@ -40,9 +40,9 @@ def main():
     #     ('input/300_05.png', 30), ('input/300_06.png', 30), ('input/300_07.png', 30), ('input/300_08.png', 30),
     #     ('input/300_09.png', 30), ('input/300_10.png', 30)], settings=[10, 25, 30, 8, 14, 32])
 
-    puzzle_solver = PuzzleSolver("tart2", (18, 18), 200, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
-        'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
-        sides_first=False)
+    # puzzle_solver = PuzzleSolver("tart2", (18, 18), 200, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
+    #     'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
+    #     sides_first=False)
 
     # puzzle_solver = PuzzleSolver("feather", (21.25, 15), 200, 200,
     #     [('input/feather2_01.jpg', 40),('input/feather2_02.jpg', 40),('input/feather2_03.jpg', 40),('input/feather2_04.jpg', 40),
@@ -66,10 +66,10 @@ def main():
     #     ('input/shining_09.jpg', 42), ('input/shining_10.jpg', 42), ('input/shining_11.jpg', 42), ('input/shining_12.jpg', 23),
     #     ('input/shining_13.jpg', 15)], settings=[10, 50, 50, 14, 20, 64])
 
-    # puzzle_solver = PuzzleSolver("butterfly", (38, 54), 10000, 10000,
-        # [('input/butterfly2_01.jpg', 60), ('input/butterfly2_02.jpg', 77), ('input/butterfly2_03.jpg', 60), ('input/butterfly2_04.jpg', 66),
-        # ('input/butterfly2_05.jpg', 77), ('input/butterfly2_06.jpg', 60), ('input/butterfly2_07.jpg', 70), ('input/butterfly2_08.jpg', 43), ],
-        # settings=[20, 40, 50, 12, 20, 64])
+    puzzle_solver = PuzzleSolver("butterfly", (38, 54), 10000, 10000,
+        [('input/butterfly2_01.jpg', 60), ('input/butterfly2_02.jpg', 77), ('input/butterfly2_03.jpg', 60), ('input/butterfly2_04.jpg', 66),
+        ('input/butterfly2_05.jpg', 77), ('input/butterfly2_06.jpg', 60), ('input/butterfly2_07.jpg', 70), ('input/butterfly2_08.jpg', 43), ],
+        settings=[20, 40, 50, 16, 26, 64])
 
     # puzzle_solver = PuzzleSolver("animals1", (38, 54), 10000, 10000,
     #     [('input/animals_01.jpg', 77), ('input/animals_02.jpg', 77), ('input/animals_03.jpg', 77), ('input/animals_04.jpg', 77),
