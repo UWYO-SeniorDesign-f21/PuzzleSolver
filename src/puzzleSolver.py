@@ -134,7 +134,7 @@ class PuzzleSolver:
 
         # mutation parameters:
         self.min_exp = 1
-        self.max_exp = self.collection.num_pieces_total // 50
+        self.max_exp = self.collection.num_pieces_total // 20
         self.exp_function = (lambda x: max( 0.9 * (x > 0.9), (self.num_gens - self.generation_counter) / (self.num_gens)))  # ranges from 0 to 1
 
         self.edge_count_dict = {}  # used in calculating similarity score
@@ -540,7 +540,7 @@ def select_one_by_score(solvers, k, min_score, min_similarity=0, max_similarity=
         return random.choice(solvers)
     random_solvers_nums = random.choices(range(len(solvers)), k=k)
     # random_solvers = [solvers[n] for n in random_solvers_nums]
-    move_up_percent = 0.3
+    move_up_percent = 0.5
     best = min(random_solvers_nums, key=lambda x: (solvers[x].score) - \
             (move_up_percent * (solvers[x].score - min_score)) * \
             (1 - ((solvers[x].similarity_score - min_similarity) \
