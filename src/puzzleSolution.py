@@ -1564,6 +1564,8 @@ class PuzzleSolution:
                 if not (y == min_y and len(flat_edges) > 0 and rel_edge == 0):
                     if not above_corners is None:
                         desired_corner_poses[corner_order[1]] = desired_corner_poses[corner_order[0]] + (above_corners[corner_order[2]] - above_corners[corner_order[3]])
+                elif x == min_x and len(flat_edges) == 2:
+                    desired_corner_poses[corner_order[1]] = np.array([desired_corner_poses[corner_order[1]][0], desired_corner_poses[corner_order[0]][1]])
                 if x == max_x and rel_edge == 1:
                     desired_corner_poses[corner_order[2]] = desired_corner_poses[corner_order[1]] + (corner_poses[corner_order[2]] - corner_poses[corner_order[1]])
                 elif y == max_y and rel_edge == 2:
