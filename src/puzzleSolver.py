@@ -9,7 +9,6 @@ import copy
 import sys
 import gc
 
-
 def main():
 
     # puzzle_solver = PuzzleSolver("bluesclues", (4, 6), 30, 30,
@@ -41,7 +40,7 @@ def main():
     #     ('input/300_05.png', 30), ('input/300_06.png', 30), ('input/300_07.png', 30), ('input/300_08.png', 30),
     #     ('input/300_09.png', 30), ('input/300_10.png', 30)], settings=[10, 25, 30, 8, 14, 32])
 
-    # puzzle_solver = PuzzleSolver("tart", (18, 18), 200, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
+    # puzzle_solver = PuzzleSolver("tart2", (18, 18), 200, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
     #     'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
     #     sides_first=False)
 
@@ -84,21 +83,21 @@ def main():
     #     ('input/pokemonBeach10.png', 34), ('input/pokemonBeach11.png', 34), ('input/pokemonBeach12.png', 19)],
     #     settings=[10, 25, 30, 6, 20, 64])
 
-    puzzle_solver = PuzzleSolver("waterfront4", (54, 38), 500, 200, 
-        [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
-        ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
-        ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
-        ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
-        settings=[30, 50, 50, 8, 14, 64], sides_first=False)
+    # puzzle_solver = PuzzleSolver("waterfront4", (54, 38), 500, 200, 
+    #     [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
+    #     ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
+    #     ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
+    #     ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
+    #     settings=[30, 50, 50, 8, 14, 64], sides_first=False)
 
-    # puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 1000,
-    #     [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
-    #     ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
-    #     ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
-    #     ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
-    #     ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
-    #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
-    #     settings=[30, 50, 50, 10, 20, 64], sides_first=False)
+    puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 500,
+        [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
+        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
+        ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
+        ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
+        ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
+        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
+        settings=[30, 50, 50, 10, 16, 64], sides_first=False)
 
     # # # # # use LAB
 
@@ -129,10 +128,12 @@ class PuzzleSolver:
         print(self.collection.num_pieces_total)
         self.generation_counter = 0
 
+        self.num_threads = 1
+
         # mutation parameters:
         self.min_exp = 1
-        self.max_exp = self.collection.num_pieces_total // 10
-        self.exp_function = (lambda x: (0.5 + 0.5*x) * (self.num_gens - self.generation_counter) / (self.num_gens))  # ranges from 0 to 1
+        self.max_exp = self.collection.num_pieces_total // 50
+        self.exp_function = (lambda x: max( 0.9 * (x > 0.9), (self.num_gens - self.generation_counter) / (self.num_gens)))  # ranges from 0 to 1
 
         self.edge_count_dict = {}  # used in calculating similarity score
 
@@ -150,9 +151,11 @@ class PuzzleSolver:
         # weight length diff - how much should the difference in lengths between corners of the edge affect the score
         self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff = getDistDict(self.collection.pieces,
             weight_dist=3, weight_color=2, weight_color_hist=2, weight_length_diff=3)
+        gc.collect()
 
     def solvePuzzle(self):
         if self.sides_first:
+            prev_max_exp = self.max_exp
             self.max_exp = len([piece for piece in self.collection.pieces if piece.type in ['side', 'corner']]) // 10
             self.puzzle_name = f'{self.puzzle_name}Sides'
             self.doGen0(self.sides_first, set())
@@ -175,7 +178,7 @@ class PuzzleSolver:
             self.sides_first=False
             self.puzzle_name = self.puzzle_name[:-5]
             self.doGen0(False, include_edges)
-            self.max_exp = self.collection.num_pieces_total // 10
+            self.max_exp = prev_max_exp
             prev_best = self.best_solution.score
             gens_since_improved = 0
             while(self.generation_counter < self.num_gens):
@@ -247,7 +250,7 @@ class PuzzleSolver:
 
         self.solutions = sorted(self.solutions, key=lambda x: x.score)
         
-        include = self.solutions[:min(10, len(self.collection.pieces) // 20)]
+        include = self.solutions[:len(self.collection.pieces) // 20]
 
         selection = select_all(self.solutions, self.gen_size//4, 4, include=include)
         # for i, solution in enumerate(selection):
@@ -269,9 +272,6 @@ class PuzzleSolver:
             solution.mutate(self.getMutationRate(solution), max_mutation_score=max_mutation_score)
             # print(f'before: {before:.2f}, after: {solution.score:.2f}, max_mutation_score: {max_mutation_score:.2f}')
  
-
-
-
         # selection += top_10_percent
         # selection.append(self.best_solution.mutate(0))
 
@@ -305,6 +305,9 @@ class PuzzleSolver:
             if len(self.solutions) % 50 == 0:
                 print(f'\t{len(self.solutions)}')
 
+        for solution in self.solutions:
+            solution.mutate(self.getMutationRate(solution), max_mutation_score=0)
+
         start = timer()
 
         self.updateSimilarityScore(self.solutions, include)
@@ -317,41 +320,17 @@ class PuzzleSolver:
         # top_this_gen = min(self.solutions, key=lambda x:x.score)
         
 
-        if sum([solution.similarity_score for solution in self.solutions]) / len(self.solutions) > 0.8:
-            for solution in self.solutions:
-                max_mutation_score = (4 * self.empty_edge_dist)
-                solution.mutate(0.9, max_mutation_score=max_mutation_score)
-            self.updateSimilarityScore(self.solutions, include)
+        # if sum([solution.similarity_score for solution in self.solutions]) / len(self.solutions) > 0.8:
+        #     new_scores = sorted([solution.score for solution in self.solutions])
+        #     self.solutions = sorted(self.solutions, key=lambda x: x.score)
+        #     for solution in self.solutions[1:]:
+        #         max_mutation_score = (4 * self.empty_edge_dist)
+        #         solution.mutate(0.9, max_mutation_score=max_mutation_score)
+        #     self.updateSimilarityScore(self.solutions, include)
 
         new_scores = sorted([solution.score for solution in self.solutions])
 
         self.solutions = sorted(self.solutions, key=lambda x: x.score)
-        # for i in range(10):
-        #     index = int(self.gen_size / 20) * i
-        #     solution = self.solutions[index]
-        #     try:
-        #         solution_image = solution.getSolutionImage()
-        #         h, w, _ = solution_image.shape
-        #         #cv2.imshow(f'best solution gen {gen}', cv2.resize(solution_image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
-        #         # cv2.waitKey()
-        #         cv2.imwrite(
-        #             f'{index}_{self.puzzle_name}.jpg', solution_image)
-        #     except Exception as e: 
-        #         print(e)
-
-
-
-        # if self.generation_counter % 10 == 0 and self.generation_counter >= 20:
-        #     top_this_gen.checkAllMutations()
-        #     end1 = timer()
-        #     print(f'top this gen time: {end1 - start :.2f}')
-
-       # self.solutions = [solution.mutate(self.getMutationRate(
-        #     solution)) for solution in new_solutions]
-        # else:
-        #     self.solutions = new_solutions
-        # self.solutions = [solution for solution in new_solutions]
-        # solutions = new_solutions
 
         if min(new_scores) < self.best_solution.score:
             self.best_solution = min(
@@ -517,6 +496,25 @@ class PuzzleSolver:
 
         # so the diversity score ranges from 1 / num_edges (if all unique) to 1 if all in every other solution
 
+def getKNewSolutions(selection, k, output_solutions, sides_first, name):
+    #new_solutions += top_percent
+    while len(output_solutions) < k:
+        parent1, parent2 = random.choices(selection, k=2)
+        solver = parent1.crossover(parent2, just_sides=sides_first)
+        output_solutions.append(solver)
+
+def getKNewSolutionsGen0(collection, k, output_solutions, puzzle_dims, dist_dict, sorted_dists, buddy_edges, \
+            empty_edge_dist, include_edges, just_sides, side_pieces, name):
+    for i in range(k):
+        solver = PuzzleSolution(collection, puzzle_dims, dist_dict,
+                                sorted_dists, buddy_edges, empty_edge_dist, 0)
+        if len(include_edges) > 0:
+            solver.solvePuzzle(start=random.choice(
+                side_pieces), include_edges=include_edges, just_sides=just_sides)
+        else:
+            solver.solvePuzzle(random_start=True, just_sides=just_sides)
+
+        output_solutions.append(solver)
 
 def select_all(solvers, n, k, include):
     selection = set(include)
@@ -537,7 +535,7 @@ def select_one_by_score(solvers, k, min_score, min_similarity=0, max_similarity=
         return random.choice(solvers)
     random_solvers_nums = random.choices(range(len(solvers)), k=k)
     # random_solvers = [solvers[n] for n in random_solvers_nums]
-    move_up_percent = 0.75
+    move_up_percent = 0.3
     best = min(random_solvers_nums, key=lambda x: (solvers[x].score) - \
             (move_up_percent * (solvers[x].score - min_score)) * \
             (1 - ((solvers[x].similarity_score - min_similarity) \
@@ -665,7 +663,7 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
     cutoff = float('inf')
 
     best_edges = {}
-    max_num_edges_to_check = 3
+    max_num_edges_to_check = 1
     print('\n\nsorting ...\n')
     for piece1 in pieces:
         print(piece1.label, end=' ', flush=True)
@@ -685,7 +683,7 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
             prev_piece = piece1
         # piece1.edges[edge1].clear()
         if piece1.edges[(edge1 - 1) % 4].label == 'flat' or piece1.edges[(edge1 + 1) % 4].label == 'flat':
-            num_edges_to_check = 1
+            continue
         else:
             num_edges_to_check = max_num_edges_to_check
         entries = best_edges[(piece1, edge1)][:num_edges_to_check]
@@ -700,26 +698,6 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
     print(f'\n\n\nnum best buddies::: {len(buddy_edges)}\n\n')
     return dist_dict, sorted_dists, buddy_edges, max_dist, cutoff
 
-def insertIntoList(arr, entry):
-    l = 0
-    h = len(arr)
-    index = 0
-    while l < h:
-        mid = (h + l) // 2
-        if mid - 1 > 0 and mid + 1 < len(arr) and arr[mid - 1][1] < entry[1] and arr[mid + 1][1] > entry[1]:
-            index = mid
-            break
-        
-        if arr[mid][1] < entry[1]:
-            l = mid + 1
-        elif arr[mid[1]] > entry[1]:
-            h = mid - 1
-        else:
-            index = mid
-            break
-    
-
-            
 
 
 def getDist(dist_dict, edge):

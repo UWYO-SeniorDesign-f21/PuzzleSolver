@@ -38,7 +38,7 @@ class PuzzleSolution:
 
         self.randomness_factor = 1
         self.edge_cutoff = max(10, len(self.pieces.pieces) // 30)
-        self.edge_cutoff_sides = max(5, len([piece for piece in self.pieces.pieces if piece.label in ['side', 'corner']]) // 4)
+        self.edge_cutoff_sides = max(5, len([piece for piece in self.pieces.pieces if piece.label in ['side', 'corner']]) // 10)
 
     def getDist(self, edge):
         if edge[0] == edge[2]:
@@ -314,9 +314,9 @@ class PuzzleSolution:
             self.middle_piece_dims = [0,0,0,0]
 
         kernel = set() # group of possible edges to extend off of
-        kernel_num_edges = [set(), set(), set(), set()]
-        best_buddy_num_edges = [set(), set(), set(), set()]
-        include_num_edges = [set(), set(), set(), set()]
+        kernel_num_edges = [ListDict(), ListDict(), ListDict(), ListDict()]
+        best_buddy_num_edges = [ListDict(), ListDict(), ListDict(), ListDict()]
+        include_num_edges =  [ListDict(), ListDict(), ListDict(), ListDict()]
         best_buddy_starts = set((edge[0], edge[1]) for edge in self.buddy_edges)
         best_buddy_ends = {(edge[0], edge[1]) : (edge[0], edge[1], edge[2], edge[3]) for edge in self.buddy_edges}
         include_starts = set((edge[0], edge[1]) for edge in include_edges)
@@ -339,27 +339,20 @@ class PuzzleSolution:
             cv2.waitKey(1)
             cv2.imwrite(f'solution{len(remaining_pieces)}.jpg', image)
 
-        tries = 0
-        max_tries = 10
         # while pieces are able to be added
         while len(remaining_pieces) > 0 and len(kernel) > 0:
             # print(len(remaining_pieces), len(kernel))
             min_edge = None
             min_adj = None
-            min_dist = 0
+            min_dist = float('inf')
             if len(include_edges) > 0:
                 min_edge, min_adj, min_dist = self.getNextEdgeInclude(include_edges, include_num_edges, remaining_pieces)
-            if min_edge is None and do_best_buddies:
+            if min_dist == float('inf') and do_best_buddies:
                 min_edge, min_adj, min_dist = self.getNextEdgeInclude(self.buddy_edges, best_buddy_num_edges, remaining_pieces)
-            if min_edge is None:
+            if min_dist == float('inf'):
                 min_edge, min_adj, min_dist = self.getNextEdge(kernel_num_edges, remaining_pieces)
-            if min_edge is None: # if there are no possible piece locations
-                # print(self.all_piece_dims)
-                tries += 1
-                if tries > max_tries:
-                    break
-                continue
-            tries = 0
+            if min_dist == float('inf'): # if there are no possible piece locations
+                break
             # get the closest edge
             piece1, edge1, piece2, edge2 = min_edge
             remaining_pieces.remove(piece2) # update available pieces, as piece2 is added to group
@@ -439,7 +432,6 @@ class PuzzleSolution:
                 cv2.imshow(f'solution', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
                 cv2.waitKey(1)
                 cv2.imwrite(f'solution{len(remaining_pieces)}.jpg', image)
-
         # for any empty spots, penalty
         # if len(remaining_pieces) != 0:
         #     solution_image = self.getSolutionImage()
@@ -454,63 +446,55 @@ class PuzzleSolution:
         min_adj = None
         min_dist = float('inf')
         # loop over possible edges to extend and possible edges to connect to them
-        for index, kernel_num_adj in enumerate(kernel_num_edges[::-1]):
-            num_adj = 4 - index
+        for num_adj in [4,3,2,1]:
+            kernel_num_adj = kernel_num_edges[num_adj - 1]
+
             if len(kernel_num_adj) == 0:
                 continue
 
-            # random.shuffle(kernel_num_adj)
-            piece1, edge1 = random.choice(tuple(kernel_num_adj))
-            piece1_loc, piece1_edge_up = self.info_dict[piece1]
+            for piece1, edge1 in kernel_num_adj:
 
-            for edge, dist in self.sorted_dists[(piece1, edge1)]:
+                piece1_loc, piece1_edge_up = self.info_dict[piece1]
 
-                if dist >= min_dist:
-                    break
-
-                piece2, edge2 = edge
-                if piece2 not in remaining_pieces:
-                    continue
-
-            # for entry in kernel_num_adj:
-            #     piece1, edge1 = entry
-            #     # selection = random.choices(list(kernel), k=self.randomness_factor)# kernel_list[i:i+self.randomness_factor]
-            #     # piece1, edge1 = random.choice(kernel_num_adj)
-            #     # for piece1, edge1 in selection:
-            #     piece1_loc, piece1_edge_up = self.info_dict[piece1]
-            #     for piece2 in remaining_pieces:
-            #         for edge2 in range(4):
-                    #for piece2 in remaining_pieces:
-                        #for edge2 in range(4):
-                            # get the edges that are adjacent to the piece being inserted
-
-                        # check if each edge is valid, find the distance
-
-                adj_edges, piece2_pos = self.getAdjacentEdges(piece1, edge1, piece2, edge2, piece1_loc, piece1_edge_up)
-                dist = 0
-                valid = True
-                for adj_edge in adj_edges:
-                    dist += self.getDist(adj_edge)
-
-                if dist >= min_dist:
-                    continue
-
-                for adj_edge in adj_edges:
-                    if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3], piece2_pos[0], piece2_pos[1]):
-                        valid = False
+                for edge, dist in self.sorted_dists[(piece1, edge1)]:
+                    if dist >= min_dist:
                         break
 
-                if not valid:
-                    continue   
+                    piece2, edge2 = edge
+                    if piece2 not in remaining_pieces:
+                        continue
 
-                min_dist = dist
-                min_edge = (piece1, edge1, piece2, edge2)
-                min_adj = adj_edges
+                    adj_edges, piece2_pos = self.getAdjacentEdges(piece1, edge1, piece2, edge2, piece1_loc, piece1_edge_up)
+                    dist = 0
+                    valid = True
 
-                if not min_edge is None and num_adj == 1:
+                    for adj_edge in adj_edges:
+                        dist += self.getDist(adj_edge)
+
+                    if dist >= min_dist:
+                        continue
+
+                    for adj_edge in adj_edges:
+                        if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3], piece2_pos[0], piece2_pos[1]):
+                            valid = False
+                            break
+
+                    if not valid:
+                        continue   
+
+                    min_dist = dist
+                    min_edge = (piece1, edge1, piece2, edge2)
+                    min_adj = adj_edges
+
+                    if not min_edge is None and num_adj == 1:
+                        break
+
+                if min_dist == float('inf'):
+                    kernel_num_edges[num_adj-1].remove((piece1, edge1))
+                else:
                     break
 
-            if not min_edge is None:
+            if min_dist != float('inf'):
                 break
 
         return min_edge, min_adj, min_dist
@@ -527,57 +511,48 @@ class PuzzleSolution:
         # edges_num_adj = [edge for edge in valid_edges if kernel_num_edges.get((edge[0], edge[1])) == num_adj]
         # loop over possible edges to extend and possible edges to connect to them
         
-        for index, edge_set in enumerate(include_num_edges[::-1]):
-            num_adj = 4 - index
+        for num_adj in [4,3,2,1]:
+            edge_set = include_num_edges[num_adj - 1]
             if len(edge_set) == 0:
                 continue
-            # random.shuffle(valid_edges)
-            piece1, edge1, piece2, edge2 = random.choice(tuple(edge_set))
-            while piece2 not in remaining_pieces:
-                edge_set.remove((piece1, edge1, piece2, edge2))
-                if len(edge_set) == 0:
-                    break
-                piece1, edge1, piece2, edge2 = random.choice(tuple(edge_set))
-            include_num_edges[num_adj - 1] = edge_set
+            for edge in edge_set:
+                piece1, edge1, piece2, edge2 = edge
+                if piece2 not in remaining_pieces:
+                    include_num_edges[num_adj - 1].remove((piece1, edge1, piece2, edge2))
+                    continue
+                
+                piece1_loc, piece1_edge_up = self.info_dict[piece1]
 
-            if len(edge_set) == 0:
-                continue
-            
-            piece1_loc, piece1_edge_up = self.info_dict[piece1]
+                adj_edges, piece2_pos = self.getAdjacentEdges(piece1, edge1, piece2, edge2, piece1_loc, piece1_edge_up)
 
-            # for edge in valid_edges:
-            #     piece1, edge1, piece2, edge2 = edge
+                dist = 0
+                # check if each edge is valid, find the distance
+                for adj_edge in adj_edges:
+                    adj_dist = self.getDist(adj_edge)
+                    dist += adj_dist
+                
+                if dist == float('inf'):
+                    include_num_edges[num_adj - 1].remove((piece1, edge1, piece2, edge2))
+                    continue
 
+                valid = True
+                for adj_edge in adj_edges:
+                    if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3], piece2_pos[0], piece2_pos[1]):
+                        valid = False
+                        break
 
-            adj_edges, piece2_pos = self.getAdjacentEdges(piece1, edge1, piece2, edge2, piece1_loc, piece1_edge_up)
-            if len(adj_edges) != num_adj:
-                continue
+                if not valid:
+                    include_num_edges[num_adj - 1].remove((piece1, edge1, piece2, edge2))
+                    continue
 
-            dist = 0
-            # check if each edge is valid, find the distance
-            for adj_edge in adj_edges:
-                adj_dist = self.getDist(adj_edge)
-                dist += adj_dist
-
-            if dist >= min_dist:
-                continue
-
-            valid = True
-            for adj_edge in adj_edges:
-                if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3], piece2_pos[0], piece2_pos[1]):
-                    valid = False
-                    break
-
-            if not valid:
-                continue
-
-            min_dist = dist
-            min_edge = (piece1, edge1, piece2, edge2)
-            min_adj = adj_edges
-
-            if not min_edge is None:
+                min_dist = dist
+                min_edge = (piece1, edge1, piece2, edge2)
+                min_adj = adj_edges
                 break
-            
+
+            if not min_dist == float('inf'):
+                break
+                
         return min_edge, min_adj, min_dist
 
     # returns the edges adjacent to a piece (in the existing group put together so far) if it were to be added
@@ -1714,6 +1689,45 @@ def getConnectedComponents(edges):
     # print(len(largest_section), num_pieces)
     connected_components = sorted(connected_components, key=lambda x:-len(x))
     return connected_components
+
+class ListDict(object):
+    def __init__(self):
+        self.position_dict = {}
+        self.list = []
+
+    def __contains__(self, item):
+        return (item in self.position_dict)
+
+    def __len__(self):
+        return len(self.list)
+
+    def __iter__(self):
+        return iter(self.list)
+    
+    def add(self, item):
+        if item in self.position_dict:
+            return
+        if len(self.list) <= 1:
+            self.list.append(item)
+            self.position_dict[item] = len(self.list) - 1
+        else:
+            position = random.choice(range(len(self.list)))
+            prev_item = self.list[position]
+            self.list[position] = item
+            self.list.append(prev_item)
+            self.position_dict[item] = position
+            self.position_dict[prev_item] = len(self.list)-1
+    
+    def remove(self, item):
+        position = self.position_dict.pop(item)
+        last = self.list.pop()
+        if position != len(self.list):
+            self.list[position] = last
+            self.position_dict[last] = position
+
+    def random_choice(self):
+        return random.choice(self.list)
+
 
 def dfs(edge_dict, unvisited_pieces, piece):
     num_connected = 0
