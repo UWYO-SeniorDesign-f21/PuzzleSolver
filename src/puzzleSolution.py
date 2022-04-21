@@ -1301,11 +1301,17 @@ class PuzzleSolution:
         for x in range(num_sections_x):
             for y in range(num_sections_y):
                 if y == 0:
-                    direction = 0
+                    if x == num_sections_x - 1:
+                        direction = 1
+                    else:
+                        direction = 0
                 elif y == num_sections_y - 1:
-                    direction = 2
-                elif x == 0:
-                    direction = 3
+                    if x == num_sections_x - 1:
+                        direction = 2
+                    else:
+                        direction = 3
+                elif x == num_sections_x - 1:
+                    direction = 1
                 else:
                     direction = 0
                 img_xy, corners_xy = self.getPartialSolutionImage(x_midpoints[x] + 1, 
@@ -1557,25 +1563,21 @@ class PuzzleSolution:
                 desired_corner_poses = (corner_poses + np.array([pw/2, ph/2])).astype(np.float32)
 
                 
-                if not (x == min_x and len(flat_edges) > 0 and rel_edge == 3):
-                    if not left_corners is None:
-                        # desired_corner_poses[0] = corner_poses[0]
-                        desired_corner_poses[corner_order[3]] = desired_corner_poses[corner_order[0]] + (left_corners[corner_order[2]] - left_corners[corner_order[1]])
+                if not left_corners is None:
+                    desired_corner_poses[corner_order[3]] = desired_corner_poses[corner_order[0]] + (left_corners[corner_order[2]] - left_corners[corner_order[1]])
 
-                if not (y == min_y and len(flat_edges) > 0 and rel_edge == 0):
-                    if not above_corners is None:
-                        desired_corner_poses[corner_order[1]] = desired_corner_poses[corner_order[0]] + (above_corners[corner_order[2]] - above_corners[corner_order[3]])
-                
-
+                if not above_corners is None:
+                    desired_corner_poses[corner_order[1]] = desired_corner_poses[corner_order[0]] + (above_corners[corner_order[2]] - above_corners[corner_order[3]])
+            
                 if len(flat_edges) == 2:
                     desired_corner_poses[corner_order[1]] = np.array([desired_corner_poses[corner_order[1]][0], desired_corner_poses[corner_order[0]][1]])
                     desired_corner_poses[corner_order[3]] = np.array([desired_corner_poses[corner_order[0]][0], desired_corner_poses[corner_order[3]][1]])
                     desired_corner_poses[corner_order[2]] = np.array([desired_corner_poses[corner_order[1]][0], desired_corner_poses[corner_order[3]][1]])
                 elif len(flat_edges) == 1:
-                    if x == max_x and rel_edge == 1:
-                        desired_corner_poses[corner_order[2]] = desired_corner_poses[corner_order[1]] + (corner_poses[corner_order[2]] - corner_poses[corner_order[1]])
-                    elif y == max_y and rel_edge == 2:
+                    if (x == max_x and rel_edge == 1) or (x == min_x and rel_edge == 3):
                         desired_corner_poses[corner_order[2]] = desired_corner_poses[corner_order[3]] + (corner_poses[corner_order[2]] - corner_poses[corner_order[3]])
+                    elif (y == max_y and rel_edge == 2) or (y == min_y and rel_edge == 0):
+                        desired_corner_poses[corner_order[2]] = desired_corner_poses[corner_order[1]] + (corner_poses[corner_order[2]] - corner_poses[corner_order[1]])
                 else:
                     desired_corner_poses[corner_order[2]] = corner_poses[corner_order[2]] + (desired_corner_poses[corner_order[1]] - corner_poses[corner_order[3]] + desired_corner_poses[corner_order[3]] - corner_poses[corner_order[1]]) / 2
                 
