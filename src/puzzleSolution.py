@@ -37,8 +37,8 @@ class PuzzleSolution:
         self.side_piece_dims = [None, None]
 
         self.randomness_factor = 1
-        self.edge_cutoff = max(10, len(self.pieces.pieces) // 30)
-        self.edge_cutoff_sides = max(5, len([piece for piece in self.pieces.pieces if piece.label in ['side', 'corner']]) // 10)
+        self.edge_cutoff = max(10, len(self.pieces.pieces) // 100)
+        self.edge_cutoff_sides = max(3, len([piece for piece in self.pieces.pieces if not piece is None and piece.label in ['side', 'corner']]) // 20)
 
     def getDist(self, edge):
         if edge[0] == edge[2]:
@@ -185,12 +185,12 @@ class PuzzleSolution:
         if side_mutation < 0.1:
             allowed_edges = [edge for edge in self.all_edges if edge[0].type in ['side', 'corner'] and edge[2].type in ['side', 'corner']]
         else:
-            allowed_edges = [edge for edge in self.all_edges]
+            allowed_edges = self.all_edges
         if len(allowed_edges) == 0:
             return None
         tries = 0
-        while len(worst_edges) < max(1, len(allowed_edges) // 100) and tries < len(allowed_edges) / 32:
-            selection = random.sample(allowed_edges, k=max(1, len(allowed_edges) // 100))
+        while len(worst_edges) < 4 and tries < len(allowed_edges) / 32:
+            selection = random.sample(allowed_edges, k=max(1, len(allowed_edges) // 32))
             worst_edge = max(selection, key=lambda x:self.getDist(x))
             if not worst_edge in worst_edges:
                 worst_edges.add(worst_edge)
@@ -285,7 +285,8 @@ class PuzzleSolution:
             self.all_edges.add(edge)
             self.all_edges_dict[(edge[0], edge[1])] = (edge[2], edge[3])
             dist = self.getDist(edge)
-            if ((edge[2], edge[3]), dist) in self.sorted_dists[(edge[0], edge[1])][:self.edge_cutoff]:
+            edge_index = edge[2].number * 4 + edge[3]
+            if edge_index in self.sorted_dists[hash2(edge[0], edge[1])][:self.edge_cutoff]:
                 self.edges.add(edge)
         return swap_cost
 
@@ -366,7 +367,8 @@ class PuzzleSolution:
                     edge_cutoff = self.edge_cutoff_sides
                 else:
                     edge_cutoff = self.edge_cutoff
-                if ((edge[2], edge[3]), dist) in self.sorted_dists[(edge[0], edge[1])][:edge_cutoff]:
+                edge_index = edge[2].number * 4 + edge[3]
+                if edge_index in self.sorted_dists[hash2(edge[0], edge[1])][:edge_cutoff]:
                     self.edges.add(edge)
                     self.edges.add((edge[2], edge[3], edge[0], edge[1]))
                 # dist = self.dist_dict[edge[0], edge[1]][edge[2], edge[3]]
@@ -456,11 +458,13 @@ class PuzzleSolution:
 
                 piece1_loc, piece1_edge_up = self.info_dict[piece1]
 
-                for edge, dist in self.sorted_dists[(piece1, edge1)]:
+                for edge_index in self.sorted_dists[hash2(piece1, edge1)]:
+                    piece2 = self.pieces.pieces[edge_index // 4]
+                    edge2 = edge_index % 4
+                    dist = self.getDist((piece1, edge1, piece2, edge2))
                     if dist >= min_dist:
                         break
 
-                    piece2, edge2 = edge
                     if piece2 not in remaining_pieces:
                         continue
 
@@ -592,7 +596,7 @@ class PuzzleSolution:
 
     # checks if the piece will make any changes to the existing known sides of the puzzle
     def updateEdges(self, piece, piece_loc, piece_edge_up):
-        if piece.type == 'side' or piece.type == 'corner':
+        if not piece is None and (piece.type == 'side' or piece.type == 'corner'):
             # finds flat sides of the piece
             for i, edge in enumerate(piece.edges):
                 edge_diff = (i - piece_edge_up) % 4
@@ -1737,6 +1741,8 @@ class ListDict(object):
     def random_choice(self):
         return random.choice(self.list)
 
+def hash2(piece1, edge1):
+    return piece1.number * 4 + edge1
 
 def dfs(edge_dict, unvisited_pieces, piece):
     num_connected = 0
