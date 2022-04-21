@@ -21,12 +21,12 @@ def main():
     # puzzle_solver = PuzzleSolver("starwars", (6, 8), 30, 30,
     #                              [('input/star_wars_new.jpg', 48)], settings=[10, 50, 50, 5, 10, 64])
 
-    # puzzle_solver = PuzzleSolver("pokemon_1", (14.7, 10.5), 30, 30,
-    #     [('input/pokemon_puzzle_1_01.png', 20),
-    #     ('input/pokemon_puzzle_1_02.png', 20),
-    #     ('input/pokemon_puzzle_1_03.png', 20),
-    #     ('input/pokemon_puzzle_1_04.png', 20),
-    #     ('input/pokemon_puzzle_1_05.png', 20)], settings=[10, 50, 50, 14, 20, 32], sides_first=True)
+    puzzle_solver = PuzzleSolver("pokemon_1", (14.7, 10.5), 30, 30,
+        [('input/pokemon_puzzle_1_01.png', 20),
+        ('input/pokemon_puzzle_1_02.png', 20),
+        ('input/pokemon_puzzle_1_03.png', 20),
+        ('input/pokemon_puzzle_1_04.png', 20),
+        ('input/pokemon_puzzle_1_05.png', 20)], settings=[10, 50, 50, 14, 20, 32], sides_first=True)
 
     # puzzle_solver = PuzzleSolver("pokemon_2", (15, 11), 100, 100,
     #     [('input/pokemon_puzzle_2_01.png', 20),
@@ -91,14 +91,14 @@ def main():
     #     ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
     #     settings=[30, 50, 50, 8, 14, 64], sides_first=False)
 
-    puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 200,
-        [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
-        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
-        ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
-        ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
-        ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
-        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
-        settings=[30, 50, 50, 10, 16, 64], sides_first=False)
+    # puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 200,
+    #     [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
+    #     ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
+    #     ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
+    #     ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
+    #     ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
+    #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
+    #     settings=[30, 50, 50, 10, 16, 64], sides_first=False)
 
     # puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 200,
     #     [('input/patches01.png', 42), ('input/patches02.png', 48), ('input/patches03.png', 47), ('input/patches04.png', 48),
@@ -133,8 +133,8 @@ def main():
 
 class PuzzleSolver:
     def __init__(self, puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 12, 20, 32], color_spec="HSV", sides_first=False):
-        self.side_gen_size = 2000
-        self.side_gens = 500
+        self.side_gen_size = 200
+        self.side_gens = 5
         
         self.puzzle_name = puzzle_name
         self.num_gens = num_gens
@@ -203,17 +203,15 @@ class PuzzleSolver:
         gens_since_improved = 0
         while self.generation_counter < self.side_gens:
             self.doGeneration()
-            if round(self.best_solution.score, 3) < prev_best:
-                gens_since_improved = 0
-                prev_best = round(self.best_solution.score, 3)
-            else:
-                gens_since_improved += 1
+            # if round(self.best_solution.score, 3) < prev_best:
+            #     gens_since_improved = 0
+            #     prev_best = round(self.best_solution.score, 3)
+            # else:
+            #     gens_since_improved += 1
             print(f'\nTime since started: {timer() - self.begin_timer:.2f}')
             if gens_since_improved >= 30:
                 break
-
-        self.best_solution.mutate(1 - (1 / (len(self.side_collection.pieces) // 6)), max_mutation_score=4*self.empty_edge_dist)
-
+        
         for i, piece in enumerate(self.collection.pieces):
             piece.number = i
         self.generation_counter = 0
@@ -230,11 +228,11 @@ class PuzzleSolver:
         gens_since_improved = 0
         while(self.generation_counter < self.num_gens):
             self.doGeneration()
-            if round(self.best_solution.score, 3) < prev_best:
-                gens_since_improved = 0
-                prev_best = round(self.best_solution.score, 3)
-            else:
-                gens_since_improved += 1
+            # if round(self.best_solution.score, 3) < prev_best:
+            #     gens_since_improved = 0
+            #     prev_best = round(self.best_solution.score, 3)
+            # else:
+            #     gens_since_improved += 1
             print(f'\nTime since started: {timer() - self.begin_timer:.2f}\n')
             # if gens_since_improved >= 10:
             #     break
@@ -284,7 +282,7 @@ class PuzzleSolver:
 
         self.solutions = sorted(self.solutions, key=lambda x: x.score)
         
-        include = self.solutions[:5]
+        include = self.solutions[:10]
 
         selection = select_all(self.solutions, self.gen_size//4, 4, include=include)
         # for i, solution in enumerate(selection):
@@ -436,6 +434,8 @@ class PuzzleSolver:
             if len(include_edges) > 0:
                 choices = set(edge[0] for edge in include_edges)
                 new_include_edges = include_edges.copy()
+                for _ in range(len(include_edges) // 10):
+                    new_include_edges.remove(random.choice(list(new_include_edges)))
                 solver.solvePuzzle(start=random.choice(
                     list(choices)), include_edges=include_edges, just_sides=just_sides)
             else:
