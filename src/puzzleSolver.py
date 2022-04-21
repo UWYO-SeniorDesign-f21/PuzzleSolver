@@ -66,10 +66,10 @@ def main():
     #     ('input/shining_09.jpg', 42), ('input/shining_10.jpg', 42), ('input/shining_11.jpg', 42), ('input/shining_12.jpg', 23),
     #     ('input/shining_13.jpg', 15)], settings=[10, 50, 50, 14, 20, 64])
 
-    puzzle_solver = PuzzleSolver("butterfly", (38, 54), 10000, 10000,
-        [('input/butterfly2_01.jpg', 60), ('input/butterfly2_02.jpg', 77), ('input/butterfly2_03.jpg', 60), ('input/butterfly2_04.jpg', 66),
-        ('input/butterfly2_05.jpg', 77), ('input/butterfly2_06.jpg', 60), ('input/butterfly2_07.jpg', 70), ('input/butterfly2_08.jpg', 43), ],
-        settings=[20, 40, 50, 16, 26, 64])
+    # puzzle_solver = PuzzleSolver("butterfly", (38, 54), 10000, 10000,
+    #     [('input/butterfly2_01.jpg', 60), ('input/butterfly2_02.jpg', 77), ('input/butterfly2_03.jpg', 60), ('input/butterfly2_04.jpg', 66),
+    #     ('input/butterfly2_05.jpg', 77), ('input/butterfly2_06.jpg', 60), ('input/butterfly2_07.jpg', 70), ('input/butterfly2_08.jpg', 43), ],
+    #     settings=[20, 40, 50, 16, 26, 64])
 
     # puzzle_solver = PuzzleSolver("animals1", (38, 54), 10000, 10000,
     #     [('input/animals_01.jpg', 77), ('input/animals_02.jpg', 77), ('input/animals_03.jpg', 77), ('input/animals_04.jpg', 77),
@@ -98,6 +98,21 @@ def main():
     #     ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
     #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
     #     settings=[30, 50, 50, 10, 16, 64], sides_first=False)
+
+    puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 1000,
+        [('input/patches01.png', 42), ('input/patches02.png', 48), ('input/patches03.png', 47), ('input/patches04.png', 48),
+        ('input/patches05.png', 48), ('input/patches06.png', 48), ('input/patches07.png', 48), ('input/patches08.png', 47),
+        ('input/patches09.png', 48), ('input/patches10.png', 48), ('input/patches11.png', 48), ('input/patches12.png', 48),
+        ('input/patches13.png', 48), ('input/patches14.png', 48), ('input/patches15.png', 48), ('input/patches16.png', 14),
+        ('input/patches17.png', 48), ('input/patches18.png', 48), ('input/patches19.png', 48), ('input/patches20.png', 48),
+        ('input/patches21.png', 48), ('input/patches22.png', 47), ('input/patches23.png', 48), ('input/patches24.png', 48), 
+        ('input/patches25.png', 48), ('input/patches26.png', 48), ('input/patches27.png', 47), ('input/patches28.png', 48),
+        ('input/patches29.png', 48), ('input/patches30.png', 48), ('input/patches31.png', 48), ('input/patches32.png', 48), 
+        ('input/patches33.png', 48), ('input/patches34.png', 47), ('input/patches35.png', 48), ('input/patches36.png', 48), 
+        ('input/patches37.png', 48), ('input/patches38.png', 48), ('input/patches39.png', 47), ('input/patches40.png', 48), 
+        ('input/patches41.png', 48), ('input/patches42.png', 48), ('input/patches43.png', 48), ('input/patches44.png', 48),
+        ('input/patches45.png', 6)],
+        settings=[30, 50, 50, 10, 20, 64])
 
     # # # # # use LAB
 
