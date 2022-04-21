@@ -21,12 +21,12 @@ def main():
     # puzzle_solver = PuzzleSolver("starwars", (6, 8), 30, 30,
     #                              [('input/star_wars_new.jpg', 48)], settings=[10, 50, 50, 5, 10, 64])
 
-    puzzle_solver = PuzzleSolver("pokemon_1", (14.7, 10.5), 30, 30,
-        [('input/pokemon_puzzle_1_01.png', 20),
-        ('input/pokemon_puzzle_1_02.png', 20),
-        ('input/pokemon_puzzle_1_03.png', 20),
-        ('input/pokemon_puzzle_1_04.png', 20),
-        ('input/pokemon_puzzle_1_05.png', 20)], settings=[10, 50, 50, 14, 20, 32], sides_first=True)
+    # puzzle_solver = PuzzleSolver("pokemon_1", (14.7, 10.5), 30, 30,
+    #     [('input/pokemon_puzzle_1_01.png', 20),
+    #     ('input/pokemon_puzzle_1_02.png', 20),
+    #     ('input/pokemon_puzzle_1_03.png', 20),
+    #     ('input/pokemon_puzzle_1_04.png', 20),
+    #     ('input/pokemon_puzzle_1_05.png', 20)], settings=[10, 50, 50, 14, 20, 32], sides_first=True)
 
     # puzzle_solver = PuzzleSolver("pokemon_2", (15, 11), 100, 100,
     #     [('input/pokemon_puzzle_2_01.png', 20),
@@ -100,20 +100,20 @@ def main():
     #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
     #     settings=[30, 50, 50, 10, 16, 64], sides_first=False)
 
-    # puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 200,
-    #     [('input/patches01.png', 42), ('input/patches02.png', 48), ('input/patches03.png', 47), ('input/patches04.png', 48),
-    #     ('input/patches05.png', 48), ('input/patches06.png', 48), ('input/patches07.png', 48), ('input/patches08.png', 47),
-    #     ('input/patches09.png', 48), ('input/patches10.png', 48), ('input/patches11.png', 48), ('input/patches12.png', 48),
-    #     ('input/patches13.png', 48), ('input/patches14.png', 48), ('input/patches15.png', 48), ('input/patches16.png', 14),
-    #     ('input/patches17.png', 48), ('input/patches18.png', 48), ('input/patches19.png', 48), ('input/patches20.png', 48),
-    #     ('input/patches21.png', 48), ('input/patches22.png', 47), ('input/patches23.png', 48), ('input/patches24.png', 48), 
-    #     ('input/patches25.png', 48), ('input/patches26.png', 48), ('input/patches27.png', 47), ('input/patches28.png', 48),
-    #     ('input/patches29.png', 48), ('input/patches30.png', 48), ('input/patches31.png', 48), ('input/patches32.png', 48), 
-    #     ('input/patches33.png', 48), ('input/patches34.png', 47), ('input/patches35.png', 48), ('input/patches36.png', 48), 
-    #     ('input/patches37.png', 48), ('input/patches38.png', 48), ('input/patches39.png', 47), ('input/patches40.png', 48), 
-    #     ('input/patches41.png', 48), ('input/patches42.png', 48), ('input/patches43.png', 48), ('input/patches44.png', 48),
-    #     ('input/patches45.png', 6)],
-    #     settings=[30, 50, 50, 10, 20, 64], sides_first=True)
+    puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 200,
+        [('input/patches01.png', 42), ('input/patches02.png', 48), ('input/patches03.png', 47), ('input/patches04.png', 48),
+        ('input/patches05.png', 48), ('input/patches06.png', 48), ('input/patches07.png', 48), ('input/patches08.png', 47),
+        ('input/patches09.png', 48), ('input/patches10.png', 48), ('input/patches11.png', 48), ('input/patches12.png', 48),
+        ('input/patches13.png', 48), ('input/patches14.png', 48), ('input/patches15.png', 48), ('input/patches16.png', 14),
+        ('input/patches17.png', 48), ('input/patches18.png', 48), ('input/patches19.png', 48), ('input/patches20.png', 48),
+        ('input/patches21.png', 48), ('input/patches22.png', 47), ('input/patches23.png', 48), ('input/patches24.png', 48), 
+        ('input/patches25.png', 48), ('input/patches26.png', 48), ('input/patches27.png', 47), ('input/patches28.png', 48),
+        ('input/patches29.png', 48), ('input/patches30.png', 48), ('input/patches31.png', 48), ('input/patches32.png', 48), 
+        ('input/patches33.png', 48), ('input/patches34.png', 47), ('input/patches35.png', 48), ('input/patches36.png', 48), 
+        ('input/patches37.png', 48), ('input/patches38.png', 48), ('input/patches39.png', 47), ('input/patches40.png', 48), 
+        ('input/patches41.png', 48), ('input/patches42.png', 48), ('input/patches43.png', 48), ('input/patches44.png', 48),
+        ('input/patches45.png', 6)],
+        settings=[30, 50, 50, 10, 20, 64], sides_first=True)
 
     # # # # # use LAB
 
@@ -133,8 +133,8 @@ def main():
 
 class PuzzleSolver:
     def __init__(self, puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 12, 20, 32], color_spec="HSV", sides_first=False):
-        self.side_gen_size = 200
-        self.side_gens = 5
+        self.side_gen_size = 2000
+        self.side_gens = 500
         
         self.puzzle_name = puzzle_name
         self.num_gens = num_gens
