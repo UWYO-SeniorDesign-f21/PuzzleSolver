@@ -83,23 +83,23 @@ def main():
     #     ('input/pokemonBeach10.png', 34), ('input/pokemonBeach11.png', 34), ('input/pokemonBeach12.png', 19)],
     #     settings=[10, 25, 30, 6, 20, 64])
 
-    puzzle_solver = PuzzleSolver("waterfront4", (54, 38), 500, 200, 
-        [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
-        ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
-        ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
-        ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
-        settings=[30, 50, 50, 8, 14, 64], sides_first=False)
+    # puzzle_solver = PuzzleSolver("waterfront4", (54, 38), 500, 200, 
+    #     [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
+    #     ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
+    #     ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
+    #     ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
+    #     settings=[30, 50, 50, 8, 14, 64], sides_first=False)
 
-    # puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 500,
-    #     [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
-    #     ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
-    #     ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
-    #     ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
-    #     ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
-    #     ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
-    #     settings=[30, 50, 50, 10, 16, 64], sides_first=False)
+    puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 200,
+        [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
+        ('input/donut05.png', 48), ('input/donut06.png', 48), ('input/donut07.png', 48), ('input/donut08.png', 41),
+        ('input/donut09.png', 48), ('input/donut10.png', 48), ('input/donut11.png', 47), ('input/donut12.png', 48),
+        ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
+        ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
+        ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
+        settings=[30, 50, 50, 10, 16, 64], sides_first=False)
 
-    # puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 1000,
+    # puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 200,
     #     [('input/patches01.png', 42), ('input/patches02.png', 48), ('input/patches03.png', 47), ('input/patches04.png', 48),
     #     ('input/patches05.png', 48), ('input/patches06.png', 48), ('input/patches07.png', 48), ('input/patches08.png', 47),
     #     ('input/patches09.png', 48), ('input/patches10.png', 48), ('input/patches11.png', 48), ('input/patches12.png', 48),
