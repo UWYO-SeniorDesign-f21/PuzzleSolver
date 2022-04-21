@@ -37,8 +37,8 @@ class PuzzleSolution:
         self.side_piece_dims = [None, None]
 
         self.randomness_factor = 1
-        self.edge_cutoff = max(10, len(self.pieces.pieces) // 30)
-        self.edge_cutoff_sides = max(5, len([piece for piece in self.pieces.pieces if not piece is None and piece.label in ['side', 'corner']]) // 10)
+        self.edge_cutoff = max(10, len(self.pieces.pieces) // 100)
+        self.edge_cutoff_sides = max(3, len([piece for piece in self.pieces.pieces if not piece is None and piece.label in ['side', 'corner']]) // 20)
 
     def getDist(self, edge):
         if edge[0] == edge[2]:
