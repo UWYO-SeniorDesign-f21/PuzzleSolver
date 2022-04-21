@@ -8,6 +8,7 @@ import math
 import copy
 import sys
 import gc
+from compressed_dictionary import CompressedDictionary as cdict
 
 def main():
 
@@ -97,7 +98,7 @@ def main():
         ('input/donut13.png', 48), ('input/donut14.png', 48), ('input/donut15.png', 48), ('input/donut16.png', 48),
         ('input/donut17.png', 48), ('input/donut18.png', 48), ('input/donut19.png', 48), ('input/donut20.png', 9),
         ('input/donut21.png', 48), ('input/donut22.png', 29), ('input/donut23.png', 36)], 
-        settings=[30, 50, 50, 10, 16, 64], sides_first=False)
+        settings=[30, 50, 50, 10, 16, 64], sides_first=True)
 
     # puzzle_solver = PuzzleSolver("patches", (56, 37), 1000, 200,
     #     [('input/patches01.png', 42), ('input/patches02.png', 48), ('input/patches03.png', 47), ('input/patches04.png', 48),
@@ -149,7 +150,7 @@ class PuzzleSolver:
 
         # mutation parameters:
         self.min_exp = 1
-        self.max_exp = self.collection.num_pieces_total // 20
+        self.max_exp = min( 30, self.collection.num_pieces_total // 20 )
         self.exp_function = (lambda x: max( 0.9 * (x > 0.9), (self.num_gens - self.generation_counter) / (self.num_gens)))  # ranges from 0 to 1
 
         self.edge_count_dict = {}  # used in calculating similarity score
@@ -166,64 +167,66 @@ class PuzzleSolver:
         # weight color hist - how much should the distribution of colors along the edge affect the score?
         #                   different from weight color bc this uses a color histogram and has more info
         # weight length diff - how much should the difference in lengths between corners of the edge affect the score
+        if self.sides_first:
+            self.solvePuzzleSides()
+        
+        for i, piece in enumerate(self.collection.pieces):
+            piece.number = i
+
         self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff = getDistDict(self.collection.pieces,
+                weight_dist=3, weight_color=2, weight_color_hist=2, weight_length_diff=3)
+
+        gc.collect()
+
+    def solvePuzzleSides(self):
+        self.side_collection = copy.copy(self.collection)
+        self.side_collection.pieces = [piece for piece in self.collection.pieces if piece.type == 'side' or piece.type == 'corner']
+        for i, piece in enumerate(self.side_collection.pieces):
+            piece.number = i
+        self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff = \
+            getDistDict(self.side_collection.pieces, \
             weight_dist=3, weight_color=2, weight_color_hist=2, weight_length_diff=3)
+        
+        prev_max_exp = self.max_exp
+        self.max_exp = len(self.side_collection.pieces) // 10
+        self.puzzle_name = f'{self.puzzle_name}Sides'
+        self.doGen0(self.sides_first, set())
+        prev_best = round(self.best_solution.score, 3)
+        gens_since_improved = 0
+        while self.generation_counter < self.num_gens // 4:
+            self.doGeneration()
+            if round(self.best_solution.score, 3) < prev_best:
+                gens_since_improved = 0
+                prev_best = round(self.best_solution.score, 3)
+            else:
+                gens_since_improved += 1
+            print(f'\nTime since started: {timer() - self.begin_timer:.2f}')
+            if gens_since_improved >= 30:
+                break
+
+        for i, piece in enumerate(self.collection.pieces):
+            piece.number = i
+        self.sides_first = False
+        self.best_solution = None
+        self.solutions = []
+        self.generation_counter = 0
         gc.collect()
 
     def solvePuzzle(self):
-        if self.sides_first:
-            prev_max_exp = self.max_exp
-            self.max_exp = len([piece for piece in self.collection.pieces if piece.type in ['side', 'corner']]) // 10
-            self.puzzle_name = f'{self.puzzle_name}Sides'
-            self.doGen0(self.sides_first, set())
-            prev_best = self.best_solution.score
-            gens_since_improved = 0
-            while self.generation_counter < self.num_gens // 4:
-                self.doGeneration()
-                if round(self.best_solution.score, 3) < prev_best:
-                    gens_since_improved = 0
-                    prev_best = round(self.best_solution.score, 3)
-                else:
-                    gens_since_improved += 1
-                print(f'\nTime since started: {timer() - self.begin_timer:.2f}')
-                if gens_since_improved >= 30:
-                    break
-                
-            include_edges = self.best_solution.all_edges
-            self.solutions = []
-            self.best_solution = None
-            self.generation_counter = 0
-            self.sides_first=False
-            self.puzzle_name = self.puzzle_name[:-5]
-            self.doGen0(False, include_edges)
-            self.max_exp = prev_max_exp
-            prev_best = self.best_solution.score
-            gens_since_improved = 0
-            while(self.generation_counter < self.num_gens):
-                self.doGeneration()
-                if round(self.best_solution.score, 3) < prev_best:
-                    gens_since_improved = 0
-                    prev_best = round(self.best_solution.score, 3)
-                else:
-                    gens_since_improved += 1
-                print(f'\nTime since started: {timer() - self.begin_timer:.2f}')
-                # if gens_since_improved >= 10:
-                #     break
-        else:
-            self.sides_first = False
-            self.doGen0(False, set())
-            prev_best = self.best_solution.score
-            gens_since_improved = 0
-            while(self.generation_counter < self.num_gens):
-                self.doGeneration()
-                if round(self.best_solution.score, 3) < prev_best:
-                    gens_since_improved = 0
-                    prev_best = round(self.best_solution.score, 3)
-                else:
-                    gens_since_improved += 1
-                print(f'\nTime since started: {timer() - self.begin_timer:.2f}\n')
-                # if gens_since_improved >= 10:
-                #     break
+        self.sides_first = False
+        self.doGen0(False, set())
+        prev_best = round(self.best_solution.score, 3)
+        gens_since_improved = 0
+        while(self.generation_counter < self.num_gens):
+            self.doGeneration()
+            if round(self.best_solution.score, 3) < prev_best:
+                gens_since_improved = 0
+                prev_best = round(self.best_solution.score, 3)
+            else:
+                gens_since_improved += 1
+            print(f'\nTime since started: {timer() - self.begin_timer:.2f}\n')
+            # if gens_since_improved >= 10:
+            #     break
         print(
             f'best score found in {self.num_gens} generations: {self.best_solution.score}')
         print(f'total time: {self.total_time}')
@@ -270,7 +273,7 @@ class PuzzleSolver:
 
         self.solutions = sorted(self.solutions, key=lambda x: x.score)
         
-        include = self.solutions[:len(self.collection.pieces) // 20]
+        include = self.solutions[:self.gen_size // 20]
 
         selection = select_all(self.solutions, self.gen_size//4, 4, include=include)
         # for i, solution in enumerate(selection):
@@ -291,7 +294,7 @@ class PuzzleSolver:
                 max_mutation_score = max(0, (16 * self.empty_edge_dist * (self.num_gens - self.generation_counter) / self.num_gens))
             solution.mutate(self.getMutationRate(solution), max_mutation_score=max_mutation_score)
             # print(f'before: {before:.2f}, after: {solution.score:.2f}, max_mutation_score: {max_mutation_score:.2f}')
- 
+
         # selection += top_10_percent
         # selection.append(self.best_solution.mutate(0))
 
@@ -366,7 +369,7 @@ class PuzzleSolver:
                         f'best_solution_gen_{self.generation_counter}_{self.puzzle_name}.jpg', solution_image)
             except Exception as e: 
                 print(e)
-
+        
         end = timer()
         gen_time += (end - start)
         print(f'total time gen {self.generation_counter}: {gen_time}')
@@ -405,9 +408,9 @@ class PuzzleSolver:
         side_pieces = [piece for piece in self.collection.pieces if piece.type ==
                     'side' or piece.type == 'corner']
         if just_sides:
-            collection = copy.copy(self.collection)
-            collection.pieces = side_pieces
+            collection = self.side_collection
         else:
+            prev_side_indexes = None
             collection = self.collection
 
         print('beggining genetic process')
@@ -417,8 +420,10 @@ class PuzzleSolver:
             if i % 50 == 0:
                 print(i)
             start = timer()
-            solver = PuzzleSolution(collection, self.puzzle_dims, self.dist_dict,
-                                    self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff)
+            if just_sides:
+                solver = PuzzleSolution(collection, self.puzzle_dims, self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff)
+            else:
+                solver = PuzzleSolution(collection, self.puzzle_dims, self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff)
             if len(include_edges) > 0:
                 new_include_edges = include_edges.copy()
                 for j in range(len(include_edges) // 20):
@@ -516,25 +521,6 @@ class PuzzleSolver:
 
         # so the diversity score ranges from 1 / num_edges (if all unique) to 1 if all in every other solution
 
-def getKNewSolutions(selection, k, output_solutions, sides_first, name):
-    #new_solutions += top_percent
-    while len(output_solutions) < k:
-        parent1, parent2 = random.choices(selection, k=2)
-        solver = parent1.crossover(parent2, just_sides=sides_first)
-        output_solutions.append(solver)
-
-def getKNewSolutionsGen0(collection, k, output_solutions, puzzle_dims, dist_dict, sorted_dists, buddy_edges, \
-            empty_edge_dist, include_edges, just_sides, side_pieces, name):
-    for i in range(k):
-        solver = PuzzleSolution(collection, puzzle_dims, dist_dict,
-                                sorted_dists, buddy_edges, empty_edge_dist, 0)
-        if len(include_edges) > 0:
-            solver.solvePuzzle(start=random.choice(
-                side_pieces), include_edges=include_edges, just_sides=just_sides)
-        else:
-            solver.solvePuzzle(random_start=True, just_sides=just_sides)
-
-        output_solutions.append(solver)
 
 def select_all(solvers, n, k, include):
     selection = set(include)
@@ -606,9 +592,10 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
     max_corner_diff = 0
     min_corner_diff = float('inf')
     print('initial dists\n')
+
     for i, piece1 in enumerate(pieces):
         print(piece1.label, end=' ', flush=True)
-        for piece2 in pieces[i+1:]:
+        for j, piece2 in enumerate(pieces[i+1:]):
             if piece1 == piece2:
                 continue
             for edge1 in range(4):
@@ -647,25 +634,25 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
 
     num_edges = 4*num_middle_pieces + 3*num_side_pieces + 2*4
 
-    sorted_dists = {}
+    sorted_dists = cdict()
     
     for piece1 in pieces:
         for edge1 in range(4):
+            sorted_dists[hash2(piece1, edge1)] = []
             if piece1.edges[edge1].label == 'flat':
                 continue
-            sorted_dists[(piece1, edge1)] = []
+            sorted_dists[hash2(piece1, edge1)] = []
 
     print('\n\nnormalizing ... \n')
     max_dist = 0
     for i, piece1 in enumerate(pieces):
         print(piece1.label, end=' ', flush=True)
         for edge1 in range(4):
-            for piece2 in pieces[i+1:]:
+            for j, piece2 in enumerate(pieces[i+1:]):
                 for edge2 in range(4):
                     entry = piece1.edges[edge1].compare(piece2.edges[edge2])
                     if entry is None:
-                        dist_dict[(piece1, edge1, piece2, edge2)
-                                  ] = float('inf')
+                        dist_dict[(piece1, edge1, piece2, edge2)] = float('inf')
                         continue
                     dist_diff, color_diff, color_diff_hist, corner_diff = entry
                     dist_diff = (dist_diff - min_dist_diff) / (max_dist_diff - min_dist_diff)
@@ -678,21 +665,29 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
                     if dist < float('inf'):
                         if dist > max_dist:
                             max_dist = dist
-                        sorted_dists[(piece1, edge1)].append(((piece2, edge2), dist))
-                        sorted_dists[(piece2, edge2)].append(((piece1, edge1), dist))
+                        # entry = sorted_dists[hash2(piece1, edge1)]
+                        # if entry is None:
+                        #     entry = []
+                        sorted_dists[hash2(piece1, edge1)] += [4 * piece2.number + edge2]
+                        # entry = sorted_dists[hash2(piece2, edge2)]
+                        # if entry is None:
+                        #     entry = []
+                        sorted_dists[hash2(piece2, edge2)] += [4 * piece1.number + edge1]
+            # gc.collect()
     cutoff = float('inf')
 
     best_edges = {}
-    max_num_edges_to_check = 1
+    max_num_edges_to_check = 3
     print('\n\nsorting ...\n')
     for piece1 in pieces:
         print(piece1.label, end=' ', flush=True)
         for edge1 in range(4):
-            entry = sorted_dists.get((piece1, edge1))
+            entry = sorted_dists.get(hash2(piece1, edge1))
             if entry is None:
                 continue
-            sorted_dists[(piece1, edge1)] = sorted(entry, key=lambda x: x[1])
-            best_edges[(piece1, edge1)] = sorted_dists[(piece1, edge1)][:max_num_edges_to_check]
+            print(len(sorted_dists[hash2(piece1, edge1)]))
+            sorted_dists[hash2(piece1, edge1)] = sorted(entry, key=lambda x: getDist(dist_dict, (piece1, edge1, pieces[x//4], x%4)))
+            best_edges[(piece1, edge1)] = sorted_dists[hash2(piece1, edge1)][:max_num_edges_to_check]
 
     print('\n\nfinding best buddies\n')
     buddy_edges_set = set()
@@ -707,18 +702,23 @@ def getDistDict(pieces, weight_dist=100, weight_color=100, weight_color_hist=100
         else:
             num_edges_to_check = max_num_edges_to_check
         entries = best_edges[(piece1, edge1)][:num_edges_to_check]
+        p1_index = piece1.number * 4 + edge1
         # print([entry[1] for entry in entries])
-        for entry, dist in entries:
+        for edge_index in entries:
             # entry, dist = sorted_dists[(piece1, edge1)]
-            piece2, edge2 = entry
-            if (piece1, edge1) == best_edges[(piece2, edge2)][0][0]:
+            piece2 = pieces[edge_index // 4]
+            edge2 = edge_index % 4
+            if best_edges[(piece2, edge2)][0] == p1_index:
                 buddy_edges_set.add(((piece1, edge1, piece2, edge2), dist))
     buddy_edges_list = sorted([buddy for buddy in buddy_edges_set], key=lambda x:x[1])
     buddy_edges = [buddy[0] for buddy in buddy_edges_list]
+    best_edges = None
+    gc.collect()
     print(f'\n\n\nnum best buddies::: {len(buddy_edges)}\n\n')
     return dist_dict, sorted_dists, buddy_edges, max_dist, cutoff
 
-
+def hash2(piece1, edge1):
+    return piece1.number * 4 + edge1
 
 def getDist(dist_dict, edge):
     if edge[0] == edge[2]:

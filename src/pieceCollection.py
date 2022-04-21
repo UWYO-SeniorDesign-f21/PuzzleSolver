@@ -27,7 +27,7 @@ class PieceCollection:
         # adds piece objects for each pair to the array of pieces
         for i, contour in enumerate(contours):
             label = labels[i]
-            self.pieces.append(Piece(label, image, contour, self.settings[3:]))
+            self.pieces.append(Piece(label, len(self.pieces), image, contour, self.settings[3:]))
 
         # adds the values to the arrays, total
         self.images.append(image)

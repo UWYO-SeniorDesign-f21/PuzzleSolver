@@ -18,8 +18,9 @@ The subimage containing the piece, cropped and rotated appropriately can be foun
 getSubimage
 '''
 class Piece:
-    def __init__(self, label, image, contour, settings):
+    def __init__(self, label, number, image, contour, settings):
         self.label = label
+        self.number = number
         # print(label)
         self.image = image
         self.contour = contour
