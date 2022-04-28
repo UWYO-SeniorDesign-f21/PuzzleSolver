@@ -6,3 +6,4 @@ __pycache__/
 src/.vscode/
 src/__pycache__/
 src/.DS_STORE
+src/.idea/
