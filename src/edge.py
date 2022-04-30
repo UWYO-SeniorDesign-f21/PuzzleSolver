@@ -2,38 +2,54 @@ import numpy as np
 import cv2
 import math
 import gc
+from scipy import interpolate
+
 
 '''
 The edge class contains information about an edge of a puzzle piece.
 Takes a contour, which is the part of the piece's contour along the edge, from corner to corner
 The image is the full image of pieces that the edge is in
 Finds the label, flat, outer, or inner
-Finds the distances from the line between corners and each point on the contour
+Finds the distances from the line between corners on a number of points along the contour, equally spaced
 Finds the colors along the edge.
-
-Has one non-helper function that compares edges
 '''
 class Edge:
     def __init__(self, number, contour, settings):
-        self.points_per_side = min(settings[2], len(contour))
+        self.points_per_side = settings[2]
         self.number = number
-        self.corner_dist = np.linalg.norm(contour[0] - contour[-1])
-        self.contour, pts = self.getEquidistantPoints(contour)
-        self.distance_arr = self.findDistanceArray(contour, pts)
-        self.label = self.findLabel(self.distance_arr, contour)
-        self.color_arr = None
-        self.left_neighbor = None
-        self.right_neighbor = None
-        self.color_histograms = None
+        self.corner_dist = np.linalg.norm(contour[0] - contour[-1]) # length of line btw corners
+        self.contour, pts = self.getEquidistantPoints(contour) # space points equally along contour
+        self.distance_arr = self.findDistanceArray(contour, pts) # get dist from line btw corners for each pt
+        self.label = self.findLabel(self.distance_arr, contour) # flat, outer, inner
+        self.color_arr = None # colors along contour, defined in piece
+        self.left_neighbor = None # edge to the left on piece
+        self.right_neighbor = None # edge to the right on piece
+        self.color_histograms = None # histograms along the contour edge
+        self.weights = None # used in calculating dists if not stored elsewhere
+        self.mins = None
+        self.maxs = None
 
-    def clear(self):
-        del self.color_histograms
-        del self.color_arr
-        # del self.distance_arr
-        # del self.contour
-        # del self.corner_dist
-        # del self.points_per_side
-        gc.collect()
+    '''
+    compares edges by calculating a score given weights, mins, and maxs using
+    min-max normalization, weights, mins, maxs calculated in puzzleSolver in the function 
+    getDistDict
+    '''
+    def compareWeighted(self, other):
+        # if not a valid edge combo, return float('inf')
+        if self.weights is None:
+            return float('inf')
+        entry = self.compare(other)
+        if entry is None:
+            return float('inf')
+        dist_diff, color_diff, color_diff_hist, corner_diff = entry
+        dist_diff = (dist_diff - self.mins[0]) / (self.maxs[0] - self.mins[0])
+        color_diff = (color_diff - self.mins[1]) / (self.maxs[1] - self.mins[1])
+        color_diff_hist = (color_diff_hist - self.mins[2]) / (self.maxs[2] - self.mins[2])
+        corner_diff = (corner_diff - self.mins[3]) / (self.maxs[3] - self.mins[3])
+
+        dist = self.weights[0]*dist_diff + self.weights[1]*color_diff + self.weights[2]*color_diff_hist + self.weights[3]*corner_diff
+        return dist
+
 
     def setLeftNeighbor(self, neighbor):
         self.left_neighbor = neighbor
@@ -44,7 +60,13 @@ class Edge:
     def setColorHistogram(self, hist):
         self.color_histogram = hist
 
+    '''
+    compares self to other_edge, using the four metrics stored in each edge
+    returns a value for each of these metrics
+    used in the getDistDict function from puzzleSolver, where these scores are normalized
+    '''
     def compare(self, other_edge):
+        # if not a valid edge combo, return None
         if other_edge == self:
             return None
         if self.label == 'flat' or other_edge.label == 'flat':
@@ -53,35 +75,40 @@ class Edge:
             return None
         if (self.right_neighbor.label == 'flat') != (other_edge.left_neighbor.label == 'flat'):
             return None
+        
+        # mirror and invert metrics so that they are compared properly
         dist_arr_1 = -self.distance_arr
         dist_arr_2 = np.flip(other_edge.distance_arr)
         color_arr_2 = np.flip(other_edge.color_arr, axis=0)
         color_hists_2 = np.flip(other_edge.color_hists, axis=0)
-        # color_arr_hsv_2 = np.flip(other_edge.color_arr_hsv, axis=0)
+        # l2 norm of difference of dist arrays
         dist_diff = math.sqrt(np.sum((dist_arr_1 - dist_arr_2)**2))
+        # l2 norm of color differences
         color_diff = np.sum(math.sqrt(np.sum((self.color_arr - color_arr_2)**2)))
-        #color_diff_hsv = np.sum(np.linalg.norm(self.color_arr_hsv - color_arr_hsv_2))
-        # color_diff = cv2.compareHist(self.color_histogram, other_edge.color_histogram, cv2.HISTCMP_CORREL)
+        # l2 norm of color histogram correlations
         color_diff_2 = 0
         for i, hist1 in enumerate(self.color_hists):
             hist2 = color_hists_2[i]
             color_diff_2 += (1 - cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL))**2
         color_diff_2 = math.sqrt(color_diff_2)
+        # difference in length btw corners
         corner_dist_diff = abs(self.corner_dist - other_edge.corner_dist)
         corner_dist_ratio = max(self.corner_dist, other_edge.corner_dist) / min(self.corner_dist, other_edge.corner_dist)
-        # print(color_diff, color_diff_old)
-        # dist = (dist_diff + 10*self.points_per_side*(1 - color_diff)) * corner_dist_ratio
-        # dist = (dist_diff + color_diff) * corner_dist_ratio
-        # print(dist_diff, color_diff, color_diff_2, corner_dist_diff)
         return dist_diff, color_diff, color_diff_2, corner_dist_ratio
 
+    '''
+    calculates the distance to the line between corners
+    for each of the num_points points along the contour
+    '''
     def findDistanceArray(self, contour, points):
         if len(contour) == 0:
             return np.array([])
         c1 = contour[0] # find coords of first corner
         c2 = contour[-1] # find coords of second corner
+        # distance for each of the points on the contour
         d_arr = -np.cross(c2-c1,contour-c1)/np.linalg.norm(c2-c1)
         distance_arr_pts = [0]
+        # smooth out the distance values
         for i, p1 in enumerate(points[:-2]):
             p3 = points[i+2]
             if p3 - (p1 + 1) <= 0:
@@ -92,6 +119,9 @@ class Edge:
         distance_arr_pts.append(0)
         return np.array(distance_arr_pts)
 
+    '''
+    finds the label for the edge, will be flat, inner, or outer
+    '''
     def findLabel(self, distance_arr, contour):
         if len(distance_arr) == 0:
             return 'none'
@@ -110,13 +140,18 @@ class Edge:
             label = 'inner'
         return label
 
+
+    '''
+    finds equally spaced points along the contour
+    '''
     def getEquidistantPoints(self, contour):
+        # length from beginnning to each point
         dists = [cv2.arcLength(contour[:i], False) for i in range(len(contour))]
         total_len = dists[-1]
+        # desired distance from init point in contour, equally spaced
         desired_distances = np.linspace(0, total_len, num=self.points_per_side)
 
-        import matplotlib.pyplot as plt
-        from scipy import interpolate
+        # interpolate >:(
 
         interp = interpolate.interp1d(dists, range(len(contour)), kind="linear")
         pts = interp(desired_distances).astype(int)

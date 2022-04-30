@@ -37,13 +37,17 @@ class PuzzleSolution:
         self.side_piece_dims = [None, None]
 
         self.randomness_factor = 1
-        self.edge_cutoff = max(10, len(self.pieces.pieces) // 100)
-        self.edge_cutoff_sides = max(3, len([piece for piece in self.pieces.pieces if not piece is None and piece.label in ['side', 'corner']]) // 20)
+        self.edge_cutoff = max(10, self.pieces.num_pieces_total//4)
+        self.edge_cutoff_sides = max(5, len([piece for piece in self.pieces.pieces if piece.type in ['side', 'corner']])//4)
+
+        self.mutated_edges = []
 
     def getDist(self, edge):
         if edge[0] == edge[2]:
             return float('inf')
         res = self.dist_dict.get(edge) if self.dist_dict.get(edge) else self.dist_dict.get((edge[2], edge[3], edge[0], edge[1]))
+        if res is None:
+            res = edge[0].edges[edge[1]].compareWeighted(edge[2].edges[edge[3]])
         if res is None:
             return float('inf')
         return res
@@ -80,50 +84,10 @@ class PuzzleSolution:
 
         return new_solution
 
-    def checkAllMutations(self):
-        for piece1 in self.pieces.pieces:
-            min_swap = None
-            min_swap_cost = 0
-            for piece2 in self.pieces.pieces:
-                for edge1 in range(4):
-                    for edge2 in range(4):
-                        dist = self.swapEdges((piece1, edge1, piece2, edge2), just_cost_calc=True)  
-                        if dist < min_swap_cost:
-                            min_swap = (piece1, edge1, piece2, edge2)
-                            min_swap_cost = dist
-            if not min_swap is None:
-                print(min_swap_cost)
-                self.swapEdges(min_swap)
-                self.score += min_swap_cost
-
     def mutate(self, mutation_rate, max_mutation_score=0):
-        # if self.mutated:
-        #     return self
-        # roll = random.uniform(0, 1)
-        # max_mutations = len(self.edges) // 2
-        # num_mutations = 0
-        # while roll <= mutation_rate and num_mutations < max_mutations:
-        #     selection = random.choices(list(self.all_edges), k=min(len(self.edges), 32))
-        #     remove_edge = max(selection, key=lambda x:self.dist_dict[(x[0], x[1])][(x[2], x[3])])
-        #     remove_edges = [edge for edge in self.edges if edge[0] == remove_edge[0]]
-        #     for edge in remove_edges:
-        #         if edge in self.edges:
-        #             self.edges.remove(edge)
-        #             self.edges.remove((edge[2], edge[3], edge[0], edge[1]))
-        #     roll = random.uniform(0, 1)
-        #     num_mutations += 1
-        # self.mutated = True
-        # return self
 
         roll = random.uniform(0, 1)
-        # new_solution = PuzzleSolution(self.pieces, self.puzzle_dims, self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, cutoff=self.cutoff)
 
-        # new_solution.edges = self.edges.copy()
-        # new_solution.all_edges = self.all_edges.copy()
-        # new_solution.close_edges = self.close_edges.copy()
-        # new_solution.info_dict = self.info_dict.copy()
-        # new_solution.position_dict = self.position_dict.copy()
-        # new_solution.score = self.score
         if roll > mutation_rate:         
             return
 
@@ -135,21 +99,22 @@ class PuzzleSolution:
             swap = None
             # avoids bad swaps. these are rare, so probably will only iterate once
             tries = 0
-            while swap_cost == float('inf') and tries < 10:
+            while swap is None and swap_cost == float('inf') and tries < 10:
                 swap = self.getSwap()
                 if swap is None:
                     tries += 1
                     continue
-                # will either update self.edges or return cost inf
                 swap_cost = self.swapEdges(swap, just_cost_calc = True)
                 tries += 1
-            if total_mutation_cost + swap_cost <= max_mutation_score and swap_cost < max_mutation_score / 2:
-                # print(swap_cost)
-                self.swapEdges(swap)
-                # print(self.score, swap_cost)
-                self.score += swap_cost
 
-                piece1, edge1, piece2, edge2 = swap
+            piece1, edge1, piece2, edge2 = swap
+
+            self.mutated_edges.append((piece1, edge1, piece2, edge2))
+            self.mutated_edges.append((piece2, edge2, piece1, edge1))
+
+            if total_mutation_cost + swap_cost <= max_mutation_score and swap_cost < max_mutation_score / 2:
+                self.swapEdges(swap)
+                self.score += swap_cost
 
                 piece1_pos_old, piece1_edge_up_old = self.info_dict[piece1]
                 piece2_pos_old, piece2_edge_up_old = self.info_dict[piece2]
@@ -167,57 +132,38 @@ class PuzzleSolution:
                 num_mutations += 1
 
             roll = random.uniform(0, 1)
-        # if total_mutation_cost < 0:
-            # print(total_mutation_cost)
-            # show_edges = self.all_edges - new_solution.all_edges
-            # img1 = self.getSolutionImage(draw_edges=list(show_edges))
-            # img2 = new_solution.getSolutionImage(draw_edges=list(show_edges))
-
-            # cv2.imwrite(f'pre_mutation_score{self.score}.jpg', img1)
-            # cv2.imwrite(f'post_mutationn_score{new_solution.score}.jpg', img2)
-            # cv2.imshow('ijmg2', img2)
-            # cv2.waitKey(0)
-            # return self
 
     def getSwap(self):
         worst_edges = set()
-        side_mutation = random.uniform(0,1)
-        if side_mutation < 0.1:
+        side_mutation_chance = 0.2
+        if random.uniform(0,1) < side_mutation_chance:
             allowed_edges = [edge for edge in self.all_edges if edge[0].type in ['side', 'corner'] and edge[2].type in ['side', 'corner']]
+            allowed_edges = [edge for edge in allowed_edges if not edge in self.mutated_edges]
+            num_to_check = min(len(allowed_edges)//4, 32)
         else:
-            allowed_edges = self.all_edges
-        if len(allowed_edges) == 0:
-            return None
-        tries = 0
-        while len(worst_edges) < 4 and tries < len(allowed_edges) / 32:
-            selection = random.sample(allowed_edges, k=max(1, len(allowed_edges) // 32))
+            allowed_edges = [edge for edge in self.all_edges if not edge in self.mutated_edges]
+            num_to_check = min(len(allowed_edges)//4, 32)
+        while len(worst_edges) < min(len(allowed_edges)//4, 32):
+            selection = random.sample(allowed_edges, k=num_to_check)
             worst_edge = max(selection, key=lambda x:self.getDist(x))
             if not worst_edge in worst_edges:
                 worst_edges.add(worst_edge)
-            tries += 1
         dists = []
-        # all_edges = sorted(list(self.all_edges), key=lambda x:-self.dist_dict[(x[0], x[1])][(x[2], x[3])])
-        # worst_edges = all_edges[:16]
-        for piece1, piece1_edge, piece3, piece3_edge in worst_edges:
-            for piece2, piece2_edge, piece4, piece4_edge in worst_edges:
+        worst_edges = list(worst_edges)
+        for i, (piece1, piece1_edge, piece3, piece3_edge) in enumerate(worst_edges):
+            for piece2, piece2_edge, piece4, piece4_edge in worst_edges[i+1:]:
                 if piece1 == piece2 and piece1_edge == piece2_edge:
+                    continue
+                if (piece1, piece1_edge, piece2, piece2_edge) in self.mutated_edges:
+                    continue
+                if (piece2, piece2_edge, piece1, piece1_edge) in self.mutated_edges:
                     continue
                 dist = self.swapEdges((piece1, piece1_edge, piece2, piece2_edge), just_cost_calc=True)
                 dists.append((piece1, piece1_edge, piece2, piece2_edge, dist))
-        
-        if len(dists) > 0:
-            p1, e1, p2, e2, _ = min(dists, key=lambda x:x[4])
-            swap = (p1, e1, p2, e2)
-        else:
+        if len(dists) == 0:
             return None
-
-        # random_edges = random.sample(self.edges, k=min(len(self.edges), 64))
-        # piece1, edge1, piece3, edge3 = max(random_edges, key=lambda x:self.dist_dict[(x[0], x[1])][x[2], x[3]])
-
-        # sorted_dists = self.sorted_dists[(piece3, edge3)]
-        # piece2_choices = random.sample(sorted_dists, k=min(len(sorted_dists), 64))
-        # piece2, edge2 = min(piece2_choices, key=lambda x:x[1])[0]
-        # swap = (piece1, edge1, piece2, edge2)
+        p1, e1, p2, e2, _ = min(dists, key=lambda x:x[4])
+        swap = (p1, e1, p2, e2)
         return swap
 
     # swaps the edges and returns the net cost of the swap
@@ -225,9 +171,6 @@ class PuzzleSolution:
         swap_cost = 0
         piece1_swap, edge1_swap, piece2_swap, edge2_swap = swap
 
-        # if piece1_swap == piece2_swap:
-        #     return float('inf')
-        
         add_edges = set()
         remove_edges = set()
         for i in range(4):
@@ -286,7 +229,11 @@ class PuzzleSolution:
             self.all_edges_dict[(edge[0], edge[1])] = (edge[2], edge[3])
             dist = self.getDist(edge)
             edge_index = edge[2].number * 4 + edge[3]
-            if edge_index in self.sorted_dists[hash2(edge[0], edge[1])][:self.edge_cutoff]:
+            if edge[0].edges[edge[1]].left_neighbor.label == 'flat' or edge[0].edges[edge[1]].right_neighbor.label == 'flat':
+                edge_cutoff = self.edge_cutoff_sides
+            else:
+                edge_cutoff = self.edge_cutoff
+            if edge_index in self.sorted_dists[hash2(edge[0], edge[1])][:edge_cutoff]:
                 self.edges.add(edge)
         return swap_cost
 
@@ -330,7 +277,7 @@ class PuzzleSolution:
                     kernel_num_edges[0].add((piece1, edge))
                     if (piece1, edge) in include_starts:
                         include_num_edges[0].add(include_ends[(piece1, edge)])
-                    elif (piece1, edge) in best_buddy_starts:
+                    if (piece1, edge) in best_buddy_starts:
                         best_buddy_num_edges[0].add(best_buddy_ends[(piece1, edge)])
 
         if show_solve:
@@ -342,14 +289,13 @@ class PuzzleSolution:
 
         # while pieces are able to be added
         while len(remaining_pieces) > 0 and len(kernel) > 0:
-            # print(len(remaining_pieces), len(kernel))
             min_edge = None
             min_adj = None
             min_dist = float('inf')
             if len(include_edges) > 0:
-                min_edge, min_adj, min_dist = self.getNextEdgeInclude(include_edges, include_num_edges, remaining_pieces)
+                min_edge, min_adj, min_dist = self.getNextEdgeInclude(include_edges, include_num_edges, remaining_pieces, pick_best=True)
             if min_dist == float('inf') and do_best_buddies:
-                min_edge, min_adj, min_dist = self.getNextEdgeInclude(self.buddy_edges, best_buddy_num_edges, remaining_pieces)
+                min_edge, min_adj, min_dist = self.getNextEdgeInclude(self.buddy_edges, best_buddy_num_edges, remaining_pieces, pick_best=False)
             if min_dist == float('inf'):
                 min_edge, min_adj, min_dist = self.getNextEdge(kernel_num_edges, remaining_pieces)
             if min_dist == float('inf'): # if there are no possible piece locations
@@ -363,7 +309,7 @@ class PuzzleSolution:
             # update the score, kernel
             for edge in min_adj:
                 dist = self.getDist(edge)
-                if edge[0].type in ['side', 'corner'] and edge[2].type in ['side', 'corner']:
+                if edge[0].edges[edge[1]].left_neighbor.label == 'flat' or edge[0].edges[edge[1]].right_neighbor.label == 'flat':
                     edge_cutoff = self.edge_cutoff_sides
                 else:
                     edge_cutoff = self.edge_cutoff
@@ -371,17 +317,10 @@ class PuzzleSolution:
                 if edge_index in self.sorted_dists[hash2(edge[0], edge[1])][:edge_cutoff]:
                     self.edges.add(edge)
                     self.edges.add((edge[2], edge[3], edge[0], edge[1]))
-                # dist = self.dist_dict[edge[0], edge[1]][edge[2], edge[3]]
-                # self.score += dist
-                # if ((edge[2], edge[3]), dist) in self.sorted_dists[(edge[0], edge[1])][:self.edge_cutoff]:
-                    # self.edges.add(edge)
-                    # self.edges.add((edge[2], edge[3], edge[0], edge[1]))
-                    # if dist < self.cutoff:
-                    #     self.close_edges.add(edge)
-                    #     self.close_edges.add((edge[2], edge[3], edge[0], edge[1]))
+
                 self.all_edges.add(edge)
                 self.all_edges.add((edge[2], edge[3], edge[0], edge[1]))
-                if (edge[0], edge[1]) in kernel or (edge[2], edge[3]) in kernel:
+                if (edge[0], edge[1]) in kernel:
                     kernel.remove((edge[0], edge[1]))
                     for num_adj in range(4):
                         if (edge[0], edge[1]) in kernel_num_edges[num_adj]:
@@ -390,9 +329,7 @@ class PuzzleSolution:
                             include_num_edges[num_adj].remove(include_ends[(edge[0], edge[1])])
                         if best_buddy_ends.get((edge[0], edge[1])) in best_buddy_num_edges[num_adj]:
                             best_buddy_num_edges[num_adj].remove(best_buddy_ends[(edge[0], edge[1])])
-                else:
-                    print('zoinks')
-                    
+
             # get the location and edge up of piece 2, update info dict, position dict
             piece1_loc, piece1_edge_up = self.info_dict[piece1]
             piece2_loc, piece2_edge_up = getPieceInfo(piece1, edge1, edge2, piece1_loc, piece1_edge_up)
@@ -401,29 +338,39 @@ class PuzzleSolution:
             self.position_dict[piece2_loc] = (piece2, piece2_edge_up)
 
             # add edges that are facing an empty spot to kernel
-            used_edges = [edge[3] for edge in min_adj]
             for edge in range(4):
-                if edge not in used_edges:
-                    new_piece_loc, new_piece_edge_up = getPieceInfo(piece2, edge, 0, piece2_loc, piece2_edge_up)
-                    if self.position_dict.get(new_piece_loc):
-                        continue
-                    elif piece2.edges[edge].label != 'flat':
-                        if not just_sides or (piece2.edges[(edge - 1) % 4].label == 'flat' or piece2.edges[(edge + 1) % 4].label == 'flat'):
-                            kernel.add((piece2, edge))
-                            num_adj = len(self.getAdjacentEdges(piece2, edge, None, 0, piece2_loc, piece2_edge_up)[0])
-                            
+                new_piece_loc, new_piece_edge_up = getPieceInfo(piece2, edge, 0, piece2_loc, piece2_edge_up)
+                if piece2.edges[edge].label != 'flat':
+                    if not just_sides or (piece2.edges[(edge - 1) % 4].label == 'flat' or piece2.edges[(edge + 1) % 4].label == 'flat'):
+                        adj_edges = self.getAdjacentEdges(piece2, edge, None, 0, piece2_loc, piece2_edge_up)[0]
+                        num_adj = len(adj_edges)
+                        for adjEdge in adj_edges:
+                            adj_piece = adjEdge[0]
+                            adj_edge = adjEdge[1]
                             for prev_num_adj in range(4):
-                                if (piece2, edge) in kernel_num_edges[prev_num_adj]:
-                                    kernel_num_edges[prev_num_adj].remove((piece2, edge))
-                                if include_ends.get((piece2, edge)) in include_num_edges[prev_num_adj]:
-                                    include_num_edges[num_adj].remove(include_ends[(piece2, edge)])
-                                if best_buddy_ends.get((piece2, edge)) in best_buddy_num_edges[prev_num_adj]:
-                                    best_buddy_num_edges[num_adj].remove(best_buddy_ends[(piece2, edge)])
-                            kernel_num_edges[num_adj - 1].add((piece2, edge))
-                            if (piece2, edge) in include_starts:
-                                include_num_edges[num_adj - 1].add(include_ends[(piece2, edge)])
-                            elif (piece2, edge) in best_buddy_starts:
-                                best_buddy_num_edges[num_adj - 1].add(best_buddy_ends[(piece2, edge)])
+                                if (adj_piece, adj_edge) in kernel_num_edges[prev_num_adj]:
+                                    kernel_num_edges[prev_num_adj].remove((adj_piece, adj_edge))
+                                if include_ends.get((adj_piece, adj_edge)) in include_num_edges[prev_num_adj]:
+                                    include_num_edges[prev_num_adj].remove(include_ends[(adj_piece, adj_edge)])
+                                if best_buddy_ends.get((adj_piece, adj_edge)) in best_buddy_num_edges[prev_num_adj]:
+                                    best_buddy_num_edges[prev_num_adj].remove(best_buddy_ends[(adj_piece, adj_edge)])
+
+                        if self.position_dict.get(new_piece_loc):
+                            continue
+
+                        for adjEdge in adj_edges:
+                            adj_piece = adjEdge[0]
+                            adj_edge = adjEdge[1]
+                            if adj_piece.edges[adj_edge].label == 'flat':
+                                continue
+                            kernel_num_edges[num_adj - 1].add((adj_piece, adj_edge))
+                            if (adj_piece, adj_edge) in include_starts:
+                                include_num_edges[num_adj - 1].add(include_ends[(adj_piece, adj_edge)])
+                            if (adj_piece, adj_edge) in best_buddy_starts:
+                                best_buddy_num_edges[num_adj - 1].add(best_buddy_ends[(adj_piece, adj_edge)])
+                                
+                        kernel.add((piece2, edge))
+                        # kernel_num_edges[num_adj - 1].add((piece2, edge))
 
             # get the locations of the left, right, top, and bottom edges of the puzzle if applicable
             self.updateEdges(piece2, piece2_loc, piece2_edge_up)
@@ -434,11 +381,6 @@ class PuzzleSolution:
                 cv2.imshow(f'solution', cv2.resize(image, (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
                 cv2.waitKey(1)
                 cv2.imwrite(f'solution{len(remaining_pieces)}.jpg', image)
-        # for any empty spots, penalty
-        # if len(remaining_pieces) != 0:
-        #     solution_image = self.getSolutionImage()
-        #     cv2.imshow('sol', cv2.resize(solution_image, (500,500), interpolation=cv2.INTER_AREA))
-        #     cv2.waitKey(0)
 
         self.score += 4*len(remaining_pieces)*self.empty_edge_dist
         self.all_edges_dict = {(edge[0], edge[1]):(edge[2], edge[3]) for edge in self.all_edges}
@@ -460,13 +402,12 @@ class PuzzleSolution:
 
                 for edge_index in self.sorted_dists[hash2(piece1, edge1)]:
                     piece2 = self.pieces.pieces[edge_index // 4]
+                    if piece2 not in remaining_pieces:
+                        continue
                     edge2 = edge_index % 4
                     dist = self.getDist((piece1, edge1, piece2, edge2))
                     if dist >= min_dist:
                         break
-
-                    if piece2 not in remaining_pieces:
-                        continue
 
                     adj_edges, piece2_pos = self.getAdjacentEdges(piece1, edge1, piece2, edge2, piece1_loc, piece1_edge_up)
                     dist = 0
@@ -492,29 +433,63 @@ class PuzzleSolution:
 
                     if not min_edge is None and num_adj == 1:
                         break
-
-                if min_dist == float('inf'):
-                    kernel_num_edges[num_adj-1].remove((piece1, edge1))
-                else:
+                        
+                if min_dist != float('inf'):
                     break
 
             if min_dist != float('inf'):
                 break
 
+        if min_dist == float('inf'):
+            for num_adj in [4,3,2,1]:
+                kernel_num_adj = kernel_num_edges[num_adj - 1]
+
+                if len(kernel_num_adj) == 0:
+                    continue
+
+                for piece1, edge1 in kernel_num_adj:
+
+                    piece1_loc, piece1_edge_up = self.info_dict[piece1]
+
+                    for piece2 in remaining_pieces:
+                        for edge2 in range(4):
+                            dist = self.getDist((piece1, edge1, piece2, edge2))
+                            if dist == float('inf'):
+                                continue
+
+                            adj_edges, piece2_pos = self.getAdjacentEdges(piece1, edge1, piece2, edge2, piece1_loc, piece1_edge_up)
+                            
+                            dist = 0
+                            valid = True
+
+                            for adj_edge in adj_edges:
+                                dist += self.getDist(adj_edge)
+
+                            for adj_edge in adj_edges:
+                                if not self.isValid(adj_edge[0], adj_edge[1], adj_edge[2], adj_edge[3], piece2_pos[0], piece2_pos[1]):
+                                    valid = False
+                                    break
+
+                            if not valid:
+                                continue   
+
+                            if dist <= min_dist:
+                                min_dist = dist
+                                min_edge = (piece1, edge1, piece2, edge2)
+                                min_adj = adj_edges
+
+                    if min_dist != float('inf'):
+                        break
+
+                if min_dist != float('inf'):
+                   break
         return min_edge, min_adj, min_dist
 
-    def getNextEdgeInclude(self, edges_to_include, include_num_edges, remaining_pieces):
+    def getNextEdgeInclude(self, edges_to_include, include_num_edges, remaining_pieces, pick_best=True):
         min_edge = None
         min_adj = None
         min_dist = float('inf')
-        # min_buddy = None
-        # min_buddy_adj = None
-        # min_buddy_dist = float('inf')
-        # valid_edges = [edge for edge in edges_to_include if edge[2] in remaining_pieces and not kernel_num_edges.get((edge[0], edge[1])) is None]
-        # for num_adj in [4, 3, 2, 1]:
-        # edges_num_adj = [edge for edge in valid_edges if kernel_num_edges.get((edge[0], edge[1])) == num_adj]
-        # loop over possible edges to extend and possible edges to connect to them
-        
+
         for num_adj in [4,3,2,1]:
             edge_set = include_num_edges[num_adj - 1]
             if len(edge_set) == 0:
@@ -552,7 +527,9 @@ class PuzzleSolution:
                 min_dist = dist
                 min_edge = (piece1, edge1, piece2, edge2)
                 min_adj = adj_edges
-                break
+
+                if not min_dist == float('inf') and not pick_best:
+                    break
 
             if not min_dist == float('inf'):
                 break
@@ -602,7 +579,6 @@ class PuzzleSolution:
                 edge_diff = (i - piece_edge_up) % 4
                 if edge.label == 'flat':
                     # finds which side is flat relative to rest of puzzle, updates known side locations
-                    # edge_diff = (i - piece_edge_up) % 4
                     if edge_diff == 0:
                         self.top_edge = piece_loc[1]
                     elif edge_diff == 1:
@@ -656,7 +632,7 @@ class PuzzleSolution:
             middle_width = max_x_middle - min_x_middle + 1
             middle_height = max_y_middle - min_y_middle + 1
 
-                # update edges of puzzle according to rules of middle piece dimensions
+            # update edges of puzzle according to rules of middle piece dimensions
             if middle_width == max(self.puzzle_dims) - 2 or (middle_width == min(self.puzzle_dims) - 2 and middle_height > min(self.puzzle_dims) - 2):
                 self.left_edge = min_x_middle - 1
                 self.right_edge = max_x_middle + 1
@@ -1200,10 +1176,6 @@ class PuzzleSolution:
             if solution_image_section.shape[:2] == mask.shape:
                 solution_image_section[mask == 255] = np.array([0,0,0])
                 solution_image[y_coord:y_coord + ph, x_coord:x_coord + pw] = cv2.bitwise_xor(solution_image_section, img2)
-            
-
-            # for pt in corners2[e2]:
-            #     cv2.circle(solution_image, (int(pt[ci2][0]), int(pt[ci2][1])), 15, (0,255,255), -1)
 
         for pt_index, pt in enumerate(piece_indices):
             piece, edge_up = self.position_dict.get(pt)
@@ -1256,9 +1228,6 @@ class PuzzleSolution:
                 if solution_image_section.shape[:2] == mask.shape:
                     solution_image_section[mask == 255] = np.array([0,0,0])
                     solution_image[y_coord:y_coord + ph, x_coord:x_coord + pw] = cv2.bitwise_xor(solution_image_section, img_warped)
-            
-            # cv2.imshow('sol', cv2.resize(solution_image, (800,800), interpolation=cv2.INTER_AREA))
-            # cv2.waitKey(0)
 
         return solution_image, corners1, corners2
 
@@ -1273,13 +1242,10 @@ class PuzzleSolution:
         max_y = max(keys, key=lambda x:x[1])[1]
 
         # get the subimages for each piece in the solution facing the appropriate direction
-        # image_dict = {}
         max_size = 0
         for key in keys:
             piece, edge_up = self.position_dict[key]
-            # draw_edges_pc = [edge[1] for edge in draw_edges if edge[0] == piece] 
             piece_image, _ = piece.getSubimage2(edge_up, with_details=with_details, resize_factor=resize_factor)
-            # image_dict[key] = piece_image
 
             piece_image_size = max(piece_image.shape)
             if piece_image_size > max_size:
@@ -1595,8 +1561,7 @@ class PuzzleSolution:
                 phr = corner_poses[2][1] - corner_poses[1][1]
 
                 corner_poses = desired_corner_poses.astype(int)
-                # cv2.imshow("img_warp", img_warped)
-
+ 
                 ph, pw, _ = img_warped.shape 
 
                 if left_corners is None:
@@ -1621,9 +1586,6 @@ class PuzzleSolution:
                     if solution_image_section.shape[:2] == mask.shape:
                         solution_image_section[mask == 255] = np.array([0,0,0])
                         solution_image[y_coord:y_coord + ph, x_coord:x_coord + pw] = cv2.bitwise_xor(solution_image_section, img_warped)
-
-                # cv2.imshow('sol', cv2.resize(solution_image, (800,800), interpolation=cv2.INTER_AREA))
-                # cv2.waitKey(1)
 
                 curr_left_corner_poses[y] = corner_poses + np.array([x_coord, y_coord])
                 above_corners = corner_poses + np.array([x_coord, y_coord])
@@ -1685,24 +1647,6 @@ def getPieceInfo(piece1, edge1, edge2, piece1_loc, piece1_edge_up):
 
     return piece2_loc, piece2_edge_up
 
-
-def getConnectedComponents(edges):
-    edge_dict = {}
-    pieces = []
-    for edge in edges:
-        edge_dict[(edge[0], edge[1])] = (edge[2], edge[3])
-
-    pieces = [edge[0] for edge in edges]
-    unvisited_pieces = set(pieces)
-    num_pieces = len(unvisited_pieces)
-    connected_components = []
-    while len(unvisited_pieces) > 0:
-        num_connected, connected_set = dfs(edge_dict, unvisited_pieces, random.choice(list(unvisited_pieces)))
-        connected_components.append(connected_set)
-    # print(len(largest_section), num_pieces)
-    connected_components = sorted(connected_components, key=lambda x:-len(x))
-    return connected_components
-
 class ListDict(object):
     def __init__(self):
         self.position_dict = {}
@@ -1743,24 +1687,6 @@ class ListDict(object):
 
 def hash2(piece1, edge1):
     return piece1.number * 4 + edge1
-
-def dfs(edge_dict, unvisited_pieces, piece):
-    num_connected = 0
-    connected = set()
-    if piece in unvisited_pieces:
-        num_connected = 1
-        connected.add(piece)
-        unvisited_pieces.remove(piece)
-        for piece_edge in range(4):
-            connected_edge = edge_dict.get((piece, piece_edge))
-            if connected_edge is None:
-                continue
-            piece2 = connected_edge[0]
-            num_connected_piece2, connected_piece2 = dfs(edge_dict, unvisited_pieces, piece2)
-            num_connected += num_connected_piece2
-            connected = connected.union(connected_piece2)
-    return num_connected, connected
-
 
 if __name__=='__main__':
     main()
