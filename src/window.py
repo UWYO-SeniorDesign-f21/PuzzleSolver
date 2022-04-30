@@ -1,3 +1,5 @@
+from turtle import right
+from numpy import true_divide
 import pygame
 import fileBox
 import os
@@ -27,6 +29,7 @@ class Window:
         self.last_click_x = int()
         self.last_click_y = int()
         self.clicked = False
+        self.mouseOverButton = False
         self.x = 640
         self.y = 480
         self.centerScreenx = (width / 2) + 150
@@ -64,7 +67,23 @@ class Window:
                 pygame.quit()
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                # get mouse position
+                testIMG = pygame.image.load(self.resultImage)
+                testIMG.convert()
+                testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
+                testBorder = testIMG.get_rect()
+                testBorder.center = self.centerScreenx, self.centerScreeny
+                self.window.blit(testIMG, testBorder)
+                MPOS = pygame.mouse.get_pos()
+                
+                # Maybe an Implementation of Mouse Panning (Still in the works.)
+                if MPOS[0] >= (testBorder.x) and MPOS[0] <= (testBorder.x + self.x) and MPOS[1] >= (testBorder.y) and MPOS[1] <= (testBorder.y + self.y) and self.mouseOverButton == False :
+                    MPOS = pygame.mouse.get_pos()
+                    # print("Trying to Pan Image")
+                    self.centerScreenx = MPOS[0]
+                    self.centerScreeny = MPOS[1]
+                    print(MPOS)
+
+            if event.type == pygame.MOUSEBUTTONUP:
                 mouse = pygame.mouse.get_pos()
                 # setup mouse for event handling -> MAKE CERTAIN TO SET self.clicked BACK TO FALSE WHEN EVENT HAS BEEN PROCESSED
                 self.last_click_x = mouse[0]
@@ -131,14 +150,19 @@ class Window:
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         quit()
-                    if event.type == pygame.MOUSEBUTTONDOWN:
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
                         # get mouse position
+                        mouse = pygame.mouse.get_pos()
+                        self.centerScreenx = mouse[0]
+                        self.centerScreeny = mouse[1]
+
+                    elif event.type == pygame.MOUSEBUTTONUP:
                         mouse = pygame.mouse.get_pos()
                         # setup mouse for event handling -> MAKE CERTAIN TO SET self.clicked BACK TO FALSE WHEN EVENT HAS BEEN PROCESSED
                         self.last_click_x = mouse[0]
                         self.last_click_y = mouse[1]
                         self.clicked = True
-                    if event.type == pygame.KEYDOWN:
+                    elif event.type == pygame.KEYDOWN:
                         if self.tb.active:
                             self.tb.add_text(event.key)
                 self.prender()
@@ -247,19 +271,13 @@ class Window:
         testBorder = testIMG.get_rect()
         testBorder.center = self.centerScreenx, self.centerScreeny
         self.window.blit(testIMG, testBorder)
-        MPOS = pygame.mouse.get_pos()
-
-        # Maybe an Implementation of Mouse Panning (Still in the works.)
-        # if self.clicked and MPOS >= (testBorder.x, testBorder.y):
-        #MPOS = pygame.mouse.get_pos()
-        #print("Trying to Pan Image")
-        #self.centerScreenx = MPOS[0]
-        #self.centerScreeny = MPOS[1]
-        #self.clicked = False
-        # print(MPOS)
 
     def drawAllTheButtons(self):
         # Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
+        ARR_FOLDER = os.path.dirname(os.path.abspath(__file__))
+        rightA = os.path.join(ARR_FOLDER, 'arrowRight.png')
+        arrow = pygame.image.load(rightA)
+        aIcon = pygame.transform.scale(arrow, (50, 50))
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
         button_selected = (80, 80, 80)
@@ -292,45 +310,59 @@ class Window:
 
         # Right Button Implementation
         goRight = button.Button(
-            u"->",  (self.width-50), (self.height/2)-50, 50, 50,
+            '',  (self.width-35), (self.height/2)-75, 35, 100,
             std_font, off_white, button_selected, button_unselected)
         goRight.draw(self.window)
         if self.clicked and goRight.isInButton(self.last_click_x, self.last_click_y):
+            self.mouseOverButton = True
             self.clicked = False
             self.centerScreenx = self.centerScreenx + 50
             #self.window.blit(testIMG, (300, 46))
             print("Panning to Right?")
 
+        self.window.blit(aIcon, ((self.width-40), (self.height/2)-50))
         # Left Button Implementation
+        laIcon = pygame.transform.rotate(aIcon, 180)
+
         goLeft = button.Button(
-            u"<-", (self.width/4), (self.height/2)-50, 50, 50,
+            '', (self.width/4), (self.height/2)-75, 35, 100,
             std_font, off_white, button_selected, button_unselected)
         goLeft.draw(self.window)
         if self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y):
+            self.mouseOverButton = True
             self.clicked = False
             self.centerScreenx = self.centerScreenx - 50
             #self.window.blit(testIMG, (300, 46))
             print("Panning to Left?")
 
+        self.window.blit(laIcon, ((self.width/4)-10, (self.height/2) - 50))
         # Up Button Implementation
+        uaIcon = pygame.transform.rotate(aIcon, 90)
+
         goUp = button.Button(
-            "^", (self.width/2)-50, 0, 50, 50,
+            '', (self.width/2)+75, 0, 100, 35,
             std_font, off_white, button_selected, button_unselected)
         goUp.draw(self.window)
         if self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y):
+            self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny - 50
             print("Panning Up?")
 
+        self.window.blit(uaIcon, ((self.width/2)+ 100, -10))
         # Implements Down Button
+        daIcon = pygame.transform.rotate(aIcon, 270)
         goDown = button.Button(
-            ('\u2193'), (self.width/2)-50, (self.height-50), 50, 50,
+            '', ((self.width/2)+75), (self.height-35), 100, 35,
             std_font, off_white, button_selected, button_unselected)
         goDown.draw(self.window)
         if self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y):
+            self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny + 50
             print("Panning Down?")
+
+        self.window.blit(daIcon, ((self.width/2) + 100, (self.height-40)))
 
         # Access settings.png from current directory
         THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
