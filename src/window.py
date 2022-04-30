@@ -364,6 +364,10 @@ class Window:
 
         self.window.blit(daIcon, ((self.width/2) + 100, (self.height-40)))
 
+        #
+        # Creates button and overlays image for settings button 
+        #
+
         # Access settings.png from current directory
         THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
         my_file = os.path.join(THIS_FOLDER, 'settings.png')
@@ -399,6 +403,8 @@ class Window:
                          255, 255), (255, 255, 255)), ((self.window.get_width()/3)*2, 93*2))
 
     def drawSettingsButton(self):
+        #Draws the settings button logo
+
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
         button_selected = (80, 80, 80)
@@ -429,6 +435,8 @@ class Window:
 
         # create settings close button
     def drawSettingsClose(self):
+        # Draws the close 'X' for the settings close button.
+
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
         button_selected = (80, 80, 80)
@@ -443,6 +451,8 @@ class Window:
 
         closeX = pygame.transform.scale(closeX, DEFAULT_IMAGE_SIZE)
 
+        # If the settings window is open, draw the close button.
+        
         if self.settings:
 
             settingsClose = button.Button(
