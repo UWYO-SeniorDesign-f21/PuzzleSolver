@@ -211,7 +211,7 @@ class Window:
 
             print("running solver...")
             solver = PuzzleSolver(".title", (int(width_txt), int(
-                height_txt)), int(gen_txt), int(size_txt), self.paths)
+                height_txt)), int(gen_txt), int(size_txt), self.paths, show_sols=False)
             solver.solvePuzzle_gui_mode()
             self.resultImage = ".titleSolution.jpg"
 
