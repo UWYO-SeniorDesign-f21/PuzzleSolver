@@ -9,6 +9,7 @@ import pathlib
 from tkinter import filedialog
 from puzzleSolver import PuzzleSolver
 from textBox import Text_box
+from threading import Thread
 
 vec = pygame.math.Vector2
 
@@ -17,6 +18,13 @@ text_boxes = []
 
 def shortenPath(path, new_len):
     return pathlib.Path(*pathlib.Path(path).parts[-new_len:]).__str__()
+
+
+def runSolver(width_txt, height_txt, gen_txt, size_txt, paths):
+    print("running solver...")
+    solver = PuzzleSolver(".title", (int(width_txt), int(
+        height_txt)), int(gen_txt), int(size_txt), paths)
+    solver.solvePuzzle_gui_mode()
 
 
 class Window:
@@ -217,11 +225,9 @@ class Window:
             if size_txt == "":
                 size_txt = "100"
 
-            print("running solver...")
-            solver = PuzzleSolver(".title", (int(width_txt), int(
-                height_txt)), int(gen_txt), int(size_txt), self.paths)
-            solver.solvePuzzle_gui_mode()
-            self.resultImage = ".titleSolution.jpg"
+            new_thread = Thread(target=runSolver, args=(
+                width_txt, height_txt, gen_txt, size_txt, self.paths))
+            new_thread.start()
 
         # # Create button object
         # add = button.Button('+', 10, 60, 230, 30, f2,
