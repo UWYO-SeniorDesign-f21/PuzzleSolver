@@ -9,6 +9,7 @@ import pathlib
 from tkinter import filedialog
 from puzzleSolver import PuzzleSolver
 from textBox import Text_box
+from threading import Thread
 
 vec = pygame.math.Vector2
 
@@ -17,6 +18,13 @@ text_boxes = []
 
 def shortenPath(path, new_len):
     return pathlib.Path(*pathlib.Path(path).parts[-new_len:]).__str__()
+
+
+def runSolver(width_txt, height_txt, gen_txt, size_txt, paths):
+    print("running solver...")
+    solver = PuzzleSolver(".title", (int(width_txt), int(
+        height_txt)), int(gen_txt), int(size_txt), paths, show_sols=False)
+    solver.solvePuzzle_gui_mode()
 
 
 class Window:
@@ -30,8 +38,16 @@ class Window:
         self.last_click_y = int()
         self.clicked = False
         self.mouseOverButton = False
+        self.drag_click = False
+        self.drag_click_pos = None
+        self.drag_click_time = None
+        self.key_pressed = None
+        self.zoom_in = False
+        self.zoom_out = False
         self.x = 640
         self.y = 480
+        self.x_step = self.x // 10
+        self.y_step = self.y // 10
         self.centerScreenx = (width / 2) + 150
         self.centerScreeny = height / 2
         self.resultImage = 'result.jpg'
@@ -67,33 +83,63 @@ class Window:
                 pygame.quit()
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                testIMG = pygame.image.load(self.resultImage)
-                testIMG.convert()
-                testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
-                testBorder = testIMG.get_rect()
-                testBorder.center = self.centerScreenx, self.centerScreeny
-                self.window.blit(testIMG, testBorder)
-                MPOS = pygame.mouse.get_pos()
-                
-                # Maybe an Implementation of Mouse Panning (Still in the works.)
-                if MPOS[0] >= (testBorder.x) and MPOS[0] <= (testBorder.x + self.x) and MPOS[1] >= (testBorder.y) and MPOS[1] <= (testBorder.y + self.y) and self.mouseOverButton == False :
+
+                if event.button == 4:
+                    self.zoom_in = True
+                elif event.button == 5:
+                    self.zoom_out = True
+                elif event.button == 1:
+                    testIMG = pygame.image.load(self.resultImage)
+                    testIMG.convert()
+                    testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
+                    testBorder = testIMG.get_rect()
+                    testBorder.center = self.centerScreenx, self.centerScreeny
+                    self.window.blit(testIMG, testBorder)
                     MPOS = pygame.mouse.get_pos()
-                    # print("Trying to Pan Image")
-                    self.centerScreenx = MPOS[0]
-                    self.centerScreeny = MPOS[1]
-                    print(MPOS)
+
+                    self.drag_click = True
+                    self.drag_click_pos = MPOS
+                    self.drag_click_time = time.time()
+
+                # # Maybe an Implementation of Mouse Panning (Still in the works.)
+                # if MPOS[0] >= (testBorder.x) and MPOS[0] <= (testBorder.x + self.x) and MPOS[1] >= (testBorder.y) and MPOS[1] <= (testBorder.y + self.y) and self.mouseOverButton == False:
+                #     MPOS = pygame.mouse.get_pos()
+                #     # print("Trying to Pan Image")
+                #     self.centerScreenx = MPOS[0]
+                #     self.centerScreeny = MPOS[1]
+                #     print(MPOS)
 
             if event.type == pygame.MOUSEBUTTONUP:
-                mouse = pygame.mouse.get_pos()
-                # setup mouse for event handling -> MAKE CERTAIN TO SET self.clicked BACK TO FALSE WHEN EVENT HAS BEEN PROCESSED
-                self.last_click_x = mouse[0]
-                self.last_click_y = mouse[1]
+                if event.button == 1:
+                    mouse = pygame.mouse.get_pos()
+                    # setup mouse for event handling -> MAKE CERTAIN TO SET self.clicked BACK TO FALSE WHEN EVENT HAS BEEN PROCESSED
+                    self.last_click_x = mouse[0]
+                    self.last_click_y = mouse[1]
 
-                self.clicked = True
+                    self.clicked = True
+                    self.drag_click = False
+                    self.drag_click_pos = None
+                    self.drag_click_time = None
             if event.type == pygame.KEYDOWN:
+                self.key_pressed = event.key
                 for box in text_boxes:
                     if box.active:
                         box.add_text(event.key)
+            if event.type == pygame.KEYUP:
+                self.key_pressed = None
+
+        if not self.drag_click_pos is None:
+            if time.time() - self.drag_click_time >= 0.05:
+                MPOS = pygame.mouse.get_pos()
+                dx = self.drag_click_pos[0] - MPOS[0]
+                dy = self.drag_click_pos[1] - MPOS[1]
+                self.centerScreenx = self.centerScreenx - dx
+                self.centerScreeny = self.centerScreeny - dy
+
+                self.drag_click = True
+                self.drag_click_pos = MPOS
+
+
 
     def prender(self):
         bg_gray = (74, 74, 74)
@@ -150,11 +196,11 @@ class Window:
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         quit()
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                    # elif event.type == pygame.MOUSEBUTTONDOWN:
                         # get mouse position
-                        mouse = pygame.mouse.get_pos()
-                        self.centerScreenx = mouse[0]
-                        self.centerScreeny = mouse[1]
+                        # mouse = pygame.mouse.get_pos()
+                        # self.centerScreenx = mouse[0]
+                        # self.centerScreeny = mouse[1]
 
                     elif event.type == pygame.MOUSEBUTTONUP:
                         mouse = pygame.mouse.get_pos()
@@ -209,11 +255,17 @@ class Window:
             gen_txt = text_boxes[2].text
             size_txt = text_boxes[3].text
 
-            print("running solver...")
-            solver = PuzzleSolver(".title", (int(width_txt), int(
-                height_txt)), int(gen_txt), int(size_txt), self.paths, show_sols=False)
-            solver.solvePuzzle_gui_mode()
-            self.resultImage = ".titleSolution.jpg"
+            if width_txt == "" or height_txt == "":
+                print("Width and height must be set befor running!")
+                return
+            if gen_txt == "":
+                gen_txt = "100"
+            if size_txt == "":
+                size_txt = "100"
+
+            new_thread = Thread(target=runSolver, args=(
+                width_txt, height_txt, gen_txt, size_txt, self.paths))
+            new_thread.start()
 
         # # Create button object
         # add = button.Button('+', 10, 60, 230, 30, f2,
@@ -288,32 +340,34 @@ class Window:
             '+', 250, 550, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         zoomPlus.draw(self.window)
-        if self.clicked and zoomPlus.isInButton(self.last_click_x, self.last_click_y):
+        if (self.clicked and zoomPlus.isInButton(self.last_click_x, self.last_click_y)) or self.zoom_in:
+            self.zoom_in = False
             self.clicked = False
-            self.x = self.x + 80
-            self.y = self.y + 60
+            self.x = int(self.x * 1.2) # + self.x_step
+            self.y = int(self.y * 1.2) # + self.y_step
 
         # Implementation for Zoom Out Button
         zoomMinus = button.Button(
             '-', (250), 600, 50, 50,
             std_font, off_white, button_selected, button_unselected)
         zoomMinus.draw(self.window)
-        if self.clicked and zoomMinus.isInButton(self.last_click_x, self.last_click_y):
+        if (self.clicked and zoomMinus.isInButton(self.last_click_x, self.last_click_y)) or self.zoom_out:
+            self.zoom_out = False
             self.clicked = False
             if (self.x - 120 <= 0 or self.y - 120 <= 0):
                 print("Cannot zoom out further")
-                self.x = 60
-                self.y = 60
+                # self.x = 60
+                # self.y = 60
             else:
-                self.x = self.x - 80
-                self.y = self.y - 60
+                self.x = int(self.x * 0.8) # - self.x_step
+                self.y = int(self.y * 0.8) # - self.y_step
 
         # Right Button Implementation
         goRight = button.Button(
             '',  (self.width-35), (self.height/2)-75, 35, 100,
             std_font, off_white, button_selected, button_unselected)
         goRight.draw(self.window)
-        if self.clicked and goRight.isInButton(self.last_click_x, self.last_click_y):
+        if (self.clicked and goRight.isInButton(self.last_click_x, self.last_click_y)) or self.key_pressed == pygame.K_RIGHT:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreenx = self.centerScreenx + 50
@@ -328,7 +382,7 @@ class Window:
             '', (self.width/4), (self.height/2)-75, 35, 100,
             std_font, off_white, button_selected, button_unselected)
         goLeft.draw(self.window)
-        if self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y):
+        if (self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y))  or self.key_pressed == pygame.K_LEFT:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreenx = self.centerScreenx - 50
@@ -343,20 +397,20 @@ class Window:
             '', (self.width/2)+75, 0, 100, 35,
             std_font, off_white, button_selected, button_unselected)
         goUp.draw(self.window)
-        if self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y):
+        if (self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y))  or self.key_pressed == pygame.K_UP:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny - 50
             print("Panning Up?")
 
-        self.window.blit(uaIcon, ((self.width/2)+ 100, -10))
+        self.window.blit(uaIcon, ((self.width/2) + 100, -10))
         # Implements Down Button
         daIcon = pygame.transform.rotate(aIcon, 270)
         goDown = button.Button(
             '', ((self.width/2)+75), (self.height-35), 100, 35,
             std_font, off_white, button_selected, button_unselected)
         goDown.draw(self.window)
-        if self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y):
+        if (self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y))  or self.key_pressed == pygame.K_DOWN:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny + 50
@@ -365,7 +419,7 @@ class Window:
         self.window.blit(daIcon, ((self.width/2) + 100, (self.height-40)))
 
         #
-        # Creates button and overlays image for settings button 
+        # Creates button and overlays image for settings button
         #
 
         # Access settings.png from current directory
@@ -403,7 +457,7 @@ class Window:
                          255, 255), (255, 255, 255)), ((self.window.get_width()/3)*2, 93*2))
 
     def drawSettingsButton(self):
-        #Draws the settings button logo
+        # Draws the settings button logo
 
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
@@ -452,7 +506,7 @@ class Window:
         closeX = pygame.transform.scale(closeX, DEFAULT_IMAGE_SIZE)
 
         # If the settings window is open, draw the close button.
-        
+
         if self.settings:
 
             settingsClose = button.Button(
@@ -478,6 +532,25 @@ class Window:
 
         for box in text_boxes:
             box.drawTextBox(self.window)
+
+    def updateImage(self):
+        import shutil
+        shutil.copy("result2.jpg","result.jpg")
+        time.sleep(0.1)
+        testIMG = pygame.image.load(self.resultImage)
+        testIMG.convert()
+        w = testIMG.get_width()
+        h = testIMG.get_height()
+        if w / h != self.x / self.y:
+            max_dim = max(w, h)
+            if max_dim == w:
+                self.x = max(self.x, self.y)
+                self.y = int(self.x * (h / w))
+            else:
+                self.y = max(self.x, self.y)
+                self.x = int(self.y * (w / h))
+            self.x_step = self.x // 10
+            self.y_step = self.y // 10
 
     def render(self):
         # Clear screen with white
@@ -522,10 +595,19 @@ class Window:
         delta = 1.0
         now = int()
         last = time.time_ns()
+        prev_result_updated = 0
         while self.running:
             now = time.time_ns()
             delta = delta + ((now - last) / timePerFrame)
             last = now
+            
+            try:
+                result_updated = os.stat("result2.jpg").st_mtime
+                if result_updated > prev_result_updated:
+                    prev_result_updated = result_updated
+                    self.updateImage()
+            except:
+                pass
 
             if delta >= 1:
                 # Call update and render if on time

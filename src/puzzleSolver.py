@@ -294,6 +294,14 @@ class PuzzleSolver:
         else:
             self.doGen0(False, set())
 
+        try:
+            solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+            h, w, _ = solution_image.shape
+
+            cv2.imwrite('result2.jpg', solution_image)
+        except Exception as e: 
+            print(e)
+
         while(self.generation_counter < self.num_gens):
             self.doGeneration()
             solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
@@ -301,7 +309,7 @@ class PuzzleSolver:
                 solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
                 h, w, _ = solution_image.shape
 
-                cv2.imwrite('result.jpg', solution_image)
+                cv2.imwrite('result2.jpg', solution_image)
             except Exception as e: 
                 print(e)
 
@@ -320,7 +328,7 @@ class PuzzleSolver:
             solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
             h, w, _ = solution_image.shape
 
-            cv2.imwrite('result.jpg', solution_image)
+            cv2.imwrite('result2.jpg', solution_image)
         except Exception as e: 
             print(e)
 
