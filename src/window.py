@@ -341,6 +341,19 @@ class Window:
         # Implementation of Solved Puzzle Section (Puzzle solver output will display using this.)
         testIMG = pygame.image.load(self.resultImage)
         testIMG.convert()
+        w = testIMG.get_width()
+        h = testIMG.get_height()
+        if w / h != self.x / self.y:
+            max_dim = max(w, h)
+            if max_dim == w:
+                self.x = max(self.x, self.y)
+                self.y = int(self.x * (h / w))
+            else:
+                self.y = max(self.x, self.y)
+                self.x = int(self.y * (w / h))
+            self.x_step = self.x // 10
+            self.y_step = self.y // 10
+
         testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
         testBorder = testIMG.get_rect()
         testBorder.center = self.centerScreenx, self.centerScreeny
@@ -376,11 +389,11 @@ class Window:
         if (self.clicked and zoomMinus.isInButton(self.last_click_x, self.last_click_y)) or self.zoom_out:
             self.zoom_out = False
             self.clicked = False
-            if (self.x - 120 <= 0 or self.y - 120 <= 0):
-                print("Cannot zoom out further")
+            if not (self.x - 120 <= 0 or self.y - 120 <= 0):
+                # print("Cannot zoom out further")
                 # self.x = 60
                 # self.y = 60
-            else:
+            # else:
                 self.x = int(self.x * 0.8) # - self.x_step
                 self.y = int(self.y * 0.8) # - self.y_step
 
@@ -394,7 +407,7 @@ class Window:
             self.clicked = False
             self.centerScreenx = self.centerScreenx + 50
             #self.window.blit(testIMG, (300, 46))
-            print("Panning to Right?")
+            # print("Panning to Right?")
 
         self.window.blit(aIcon, ((self.width-40), (self.height/2)-50))
         # Left Button Implementation
@@ -409,7 +422,7 @@ class Window:
             self.clicked = False
             self.centerScreenx = self.centerScreenx - 50
             #self.window.blit(testIMG, (300, 46))
-            print("Panning to Left?")
+            # print("Panning to Left?")
 
         self.window.blit(laIcon, ((self.width/4)-10, (self.height/2) - 50))
         # Up Button Implementation
@@ -423,7 +436,7 @@ class Window:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny - 50
-            print("Panning Up?")
+            # print("Panning Up?")
 
         self.window.blit(uaIcon, ((self.width/2) + 100, -10))
         # Implements Down Button
@@ -436,7 +449,7 @@ class Window:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny + 50
-            print("Panning Down?")
+            # print("Panning Down?")
 
         self.window.blit(daIcon, ((self.width/2) + 100, (self.height-40)))
 
