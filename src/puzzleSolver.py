@@ -45,7 +45,7 @@ def main():
     #     ('input/300_05.png', 30), ('input/300_06.png', 30), ('input/300_07.png', 30), ('input/300_08.png', 30),
     #     ('input/300_09.png', 30), ('input/300_10.png', 30)], settings=[10, 25, 30, 8, 14, 32])
 
-    # puzzle_solver = PuzzleSolver("tart7", (18, 18), 50, 200, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
+    # puzzle_solver = PuzzleSolver("tart7", (18, 18), 50, 500, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
     #     'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
     #     sides_first=False)
 
@@ -88,12 +88,12 @@ def main():
     #     ('input/pokemonBeach10.png', 34), ('input/pokemonBeach11.png', 34), ('input/pokemonBeach12.png', 19)],
     #     settings=[10, 25, 30, 6, 20, 64])
 
-    puzzle_solver = PuzzleSolver("waterfront11", (54, 38), 300, 1000, 
-        [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
-        ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
-        ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
-        ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
-        settings=[30, 50, 50, 8, 14, 64], sides_first=False)
+    # puzzle_solver = PuzzleSolver("waterfront11", (54, 38), 300, 1500, 
+    #     [('input/waterfront01.png', 48), ('input/waterfront02.png', 48), ('input/waterfront03.png', 48),
+    #     ('input/waterfront04.png', 48), ('input/waterfront05.png', 42), ('input/waterfront06.png', 42),
+    #     ('input/waterfront07.png', 48), ('input/waterfront08.png', 48), ('input/waterfront09.png', 48),
+    #     ('input/waterfront10.png', 33), ('input/waterfront11.png', 12), ('input/waterfront12.png', 48)],
+    #     settings=[30, 50, 50, 8, 14, 64], sides_first=False)
 
     # puzzle_solver = PuzzleSolver("donut", (38, 27), 500, 1500,
     #     [('input/donut01.png', 48), ('input/donut02.png', 48), ('input/donut03.png', 48), ('input/donut04.png', 48),
@@ -144,7 +144,7 @@ has an option to do sides first, where the sides of the puzzle are solved and th
 used in future solutions
 '''
 class PuzzleSolver:
-    def __init__(self, puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 12, 20, 32], color_spec="HSV", sides_first=False):
+    def __init__(self, puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 20, 30, 64], color_spec="HSV", sides_first=False):
         self.side_gen_size = 500 # if doing sides first
         self.side_gens = 500
         
@@ -206,7 +206,7 @@ class PuzzleSolver:
 
 
         self.dist_dict, self.sorted_dists, self.buddy_edges, self.empty_edge_dist, self.cutoff = getDistDict(self.collection.pieces,
-                weight_dist=3, weight_color=2, weight_color_hist=1, weight_length_diff=3, num_edges_to_include=50, store_all_dists=True)
+                weight_dist=3, weight_color=2, weight_color_hist=1, weight_length_diff=3, num_edges_to_include=200, store_all_dists=True)
 
         gc.collect()
 
@@ -253,7 +253,6 @@ class PuzzleSolver:
             self.sides_first = False
         else:
             self.doGen0(False, set())
-        prev_best = round(self.best_solution.score, 3)
 
         while True:
             self.doGeneration()
@@ -269,38 +268,62 @@ class PuzzleSolver:
         print(
             f'best score found in {self.num_gens} generations: {self.best_solution.score}')
         print(f'total time: {self.total_time}')
-        solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
 
-        h, w, _ = solution_image.shape
-        cv2.destroyAllWindows()
-        if self.show_sols:
+        try:
+            solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+            h, w, _ = solution_image.shape
+
+            cv2.imwrite('result.jpg', solution_image)
+
             cv2.imshow('best solution', cv2.resize(solution_image,
                     (int(500 * (w / h)), 500), interpolation=cv2.INTER_AREA))
             cv2.waitKey()
             cv2.destroyAllWindows()
             cv2.imwrite(f'{self.puzzle_name}Solution.jpg', solution_image)
 
+        except Exception as e: 
+            print(e)
+
     '''
     Used to interface with the GUI
     '''
     def solvePuzzle_gui_mode(self):
         if self.sides_first:
-            while(self.generation_counter < self.num_gens):
-                self.doGeneration()
-            self.doGen0(False, self.best_solution.edges)
+            self.doGen0(False, self.solved_sides)
             self.generation_counter = 1
+        else:
+            self.doGen0(False, set())
+
         while(self.generation_counter < self.num_gens):
             self.doGeneration()
+            solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+            try:
+                solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+                h, w, _ = solution_image.shape
+
+                cv2.imwrite('result.jpg', solution_image)
+            except Exception as e: 
+                print(e)
+
+            print(f'\nTime since started: {timer() - self.begin_timer:.2f}\n')
+
+            diversities = [solution.similarity_score for solution in self.solutions]
+
+            # if all the solutions are basically the same, then it is done
+            if sum(diversities) / len(diversities) >= (self.collection.num_pieces_total - 1)/(self.collection.num_pieces_total):
+                break
 
         print(
             f'best score found in {self.num_gens} generations: {self.best_solution.score}')
         print(f'total time: {self.total_time}')
-        solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+        try:
+            solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+            h, w, _ = solution_image.shape
 
-        h, w, _ = solution_image.shape
-        cv2.destroyAllWindows()
+            cv2.imwrite('result.jpg', solution_image)
+        except Exception as e: 
+            print(e)
 
-        cv2.imwrite(f'{self.puzzle_name}Solution.jpg', solution_image)
 
     '''
     performs one generation of the genetic algorithm
@@ -329,7 +352,7 @@ class PuzzleSolver:
                 max_mutation_score = self.empty_edge_dist
             solution.mutate(self.getMutationRate(solution), max_mutation_score=max_mutation_score)
   
-        self.solutions = selection
+        self.solutions = include.copy()
 
         counter = 0
         limit = self.gen_size * 10

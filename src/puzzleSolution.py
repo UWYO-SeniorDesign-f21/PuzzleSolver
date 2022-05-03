@@ -104,15 +104,17 @@ class PuzzleSolution:
                 if swap is None:
                     tries += 1
                     continue
-                swap_cost = self.swapEdges(swap, just_cost_calc = True)
+                swap_cost, cost_p1, cost_p2 = self.swapEdges(swap, just_cost_calc = True)
                 tries += 1
 
             piece1, edge1, piece2, edge2 = swap
 
-            self.mutated_edges.append((piece1, edge1, piece2, edge2))
-            self.mutated_edges.append((piece2, edge2, piece1, edge1))
+            if (total_mutation_cost + swap_cost <= max_mutation_score and swap_cost < max_mutation_score / 2) or \
+                cost_p1 <= 0 or cost_p2 <= 0:
+                
+                self.mutated_edges.append((piece1, edge1, piece2, edge2))
+                self.mutated_edges.append((piece2, edge2, piece1, edge1))
 
-            if total_mutation_cost + swap_cost <= max_mutation_score and swap_cost < max_mutation_score / 2:
                 self.swapEdges(swap)
                 self.score += swap_cost
 
@@ -154,11 +156,8 @@ class PuzzleSolution:
             for piece2, piece2_edge, piece4, piece4_edge in worst_edges[i+1:]:
                 if piece1 == piece2 and piece1_edge == piece2_edge:
                     continue
-                if (piece1, piece1_edge, piece2, piece2_edge) in self.mutated_edges:
-                    continue
-                if (piece2, piece2_edge, piece1, piece1_edge) in self.mutated_edges:
-                    continue
-                dist = self.swapEdges((piece1, piece1_edge, piece2, piece2_edge), just_cost_calc=True)
+                total_dist, dist_p1, dist_p2 = self.swapEdges((piece1, piece1_edge, piece2, piece2_edge), just_cost_calc=True)
+                dist = min(dist_p1, dist_p2)
                 dists.append((piece1, piece1_edge, piece2, piece2_edge, dist))
         if len(dists) == 0:
             return None
@@ -169,6 +168,8 @@ class PuzzleSolution:
     # swaps the edges and returns the net cost of the swap
     def swapEdges(self, swap, just_cost_calc=False):
         swap_cost = 0
+        swap_cost_p1 = 0
+        swap_cost_p2 = 0
         piece1_swap, edge1_swap, piece2_swap, edge2_swap = swap
 
         add_edges = set()
@@ -178,8 +179,7 @@ class PuzzleSolution:
             piece2_edge = (edge2_swap + i) % 4
 
             if (piece1_swap.edges[piece1_edge].label == "flat") ^ (piece2_swap.edges[piece2_edge].label == "flat"):
-                return float('inf')
-
+                return float('inf'), float('inf'), float('inf')
 
             entry = self.all_edges_dict.get((piece1_swap, piece1_edge))
             if not entry is None:
@@ -197,28 +197,40 @@ class PuzzleSolution:
             if not (piece1_swap, piece1_edge, piece3, piece3_edge) in remove_edges:
                 remove_edges.add((piece1_swap, piece1_edge, piece3, piece3_edge))
                 remove_edges.add((piece3, piece3_edge, piece1_swap, piece1_edge))
-                swap_cost -= self.getDist((piece1_swap, piece1_edge, piece3, piece3_edge))
+                dist = self.getDist((piece1_swap, piece1_edge, piece3, piece3_edge))
+                swap_cost -= dist
+                swap_cost_p1 -= dist
 
             if not (piece2_swap, piece2_edge, piece4, piece4_edge) in remove_edges:
                 remove_edges.add((piece2_swap, piece2_edge, piece4, piece4_edge))
                 remove_edges.add((piece4, piece4_edge, piece2_swap, piece2_edge))
-                swap_cost -= self.getDist((piece2_swap, piece2_edge, piece4, piece4_edge))
+                dist = self.getDist((piece2_swap, piece2_edge, piece4, piece4_edge))
+                swap_cost -= dist
+                swap_cost_p2 -= dist
 
             if not (piece1_swap, piece1_edge, piece4, piece4_edge) in add_edges:
+                if (piece1_swap, piece1_edge, piece4, piece4_edge) in self.mutated_edges:
+                    return float('inf'), float('inf'), float('inf')
                 add_edges.add((piece1_swap, piece1_edge, piece4, piece4_edge))
                 add_edges.add((piece4, piece4_edge, piece1_swap, piece1_edge))
-                swap_cost += self.getDist((piece1_swap, piece1_edge, piece4, piece4_edge))
+                dist = self.getDist((piece1_swap, piece1_edge, piece4, piece4_edge))
+                swap_cost += dist
+                swap_cost_p1 += dist
 
             if not (piece2_swap, piece2_edge, piece3, piece3_edge) in add_edges:
+                if (piece2_swap, piece2_edge, piece3, piece3_edge) in self.mutated_edges:
+                    return float('inf'), float('inf'), float('inf')
                 add_edges.add((piece2_swap, piece2_edge, piece3, piece3_edge))
                 add_edges.add((piece3, piece3_edge, piece2_swap, piece2_edge))
-                swap_cost += self.getDist((piece2_swap, piece2_edge, piece3, piece3_edge))
+                dist = self.getDist((piece2_swap, piece2_edge, piece3, piece3_edge))
+                swap_cost += dist
+                swap_cost_p2 += dist
         
         if swap_cost == 0 or swap_cost == float('inf'):
-            return float('inf')
+            return float('inf'), float('inf'), float('inf')
 
         if just_cost_calc:
-            return swap_cost
+            return swap_cost, swap_cost_p1, swap_cost_p2
         for edge in remove_edges:
             self.all_edges.remove(edge)
             self.all_edges_dict[(edge[0], edge[1])] = None
@@ -235,7 +247,7 @@ class PuzzleSolution:
                 edge_cutoff = self.edge_cutoff
             if edge_index in self.sorted_dists[hash2(edge[0], edge[1])][:edge_cutoff]:
                 self.edges.add(edge)
-        return swap_cost
+        return swap_cost, swap_cost_p1, swap_cost_p2
 
     def solvePuzzle(self, random_start=False, show_solve=False, start=None, include_edges=[], do_best_buddies=True, just_sides=False):
         if not start is None:
