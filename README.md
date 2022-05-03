@@ -32,4 +32,4 @@ Some helpful how to on using the automated solver.
 3. Set the settings for the puzzle
     * For tart set dimension to 18 18
     * Generation defaults are Size 100, with 100 generations
-4. Click run (Will go unresponsive until the solver finishes... for now?)
+4. Click run 
