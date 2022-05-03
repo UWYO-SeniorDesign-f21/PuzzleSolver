@@ -10,6 +10,8 @@ import sys
 import gc
 from compressed_dictionary import CompressedDictionary as cdict
 
+
+
 def main():
     '''
     Uncomment the lines for the puzzle you want to run! Refer to the constructor for PuzzleSolver to
@@ -45,9 +47,9 @@ def main():
     #     ('input/300_05.png', 30), ('input/300_06.png', 30), ('input/300_07.png', 30), ('input/300_08.png', 30),
     #     ('input/300_09.png', 30), ('input/300_10.png', 30)], settings=[10, 25, 30, 8, 14, 32])
 
-    # puzzle_solver = PuzzleSolver("tart7", (18, 18), 50, 500, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
-    #     'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
-    #     sides_first=False)
+    puzzle_solver = PuzzleSolver("tart7", (18, 18), 50, 500, [('input/tart_puzzle_01.jpg', 30), ('input/tart_puzzle_02.jpg', 30), ('input/tart_puzzle_03.jpg', 30), ('input/tart_puzzle_04.jpg', 30), ('input/tart_puzzle_05.jpg', 30), (
+        'input/tart_puzzle_06.jpg', 30), ('input/tart_puzzle_07.jpg', 28), ('input/tart_puzzle_08.jpg', 30), ('input/tart_puzzle_09.jpg', 30), ('input/tart_puzzle_10.jpg', 30), ('input/tart_puzzle_11.jpg', 26)], settings=[10, 50, 50, 8, 14, 64],
+        sides_first=False)
 
     # puzzle_solver = PuzzleSolver("feather", (21.25, 15), 200, 500,
     #     [('input/feather2_01.jpg', 40),('input/feather2_02.jpg', 40),('input/feather2_03.jpg', 40),('input/feather2_04.jpg', 40),
@@ -145,6 +147,10 @@ used in future solutions
 '''
 class PuzzleSolver:
     def __init__(self, puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 20, 30, 64], color_spec="HSV", sides_first=False):
+        
+        # toJSON(puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 20, 30, 64], color_spec="HSV", sides_first=False)
+        # return 
+        
         self.side_gen_size = 500 # if doing sides first
         self.side_gens = 500
         
@@ -304,7 +310,7 @@ class PuzzleSolver:
 
         while(self.generation_counter < self.num_gens):
             self.doGeneration()
-            solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
+            
             try:
                 solution_image = self.best_solution.getSolutionImage(resize_factor=1, just_sides=self.sides_first)
                 h, w, _ = solution_image.shape
@@ -800,6 +806,15 @@ class listOfKElements():
     def getDists(self):
         return sorted(self.dist_list)
 
+def toJSON(puzzle_name, dims, num_gens, gen_size, image_infos, show_sols=True, settings=[10, 50, 50, 20, 30, 64], color_spec="HSV", sides_first=False):
+    import json
+    json_dict = {"puzzle_name":puzzle_name, "dims":list(dims), "num_gens":num_gens,
+                "gen_size":gen_size, 
+                "file_info":[{"path":entry[0], "num_pieces":entry[1]} for entry in image_infos],
+                "show_sols":False, "settings":settings, "color_spec":color_spec, "sides_first":sides_first}
+
+    with open(f'input/{puzzle_name}.JSON', 'w') as f:
+        json.dump(json_dict, f)
 
 if __name__ == "__main__":
     main()

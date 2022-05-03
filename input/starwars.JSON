@@ -1,0 +1,1 @@
+{"puzzle_name": "starwars", "dims": [6, 8], "num_gens": 30, "gen_size": 30, "file_info": [{"path": "input/star_wars_new.jpg", "num_pieces": 48}], "show_sols": false, "settings": [10, 50, 50, 20, 30, 64], "color_spec": "HSV", "sides_first": false}

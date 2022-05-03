@@ -10,6 +10,7 @@ from tkinter import filedialog
 from puzzleSolver import PuzzleSolver
 from textBox import Text_box
 from threading import Thread
+import json
 
 vec = pygame.math.Vector2
 
@@ -26,6 +27,16 @@ def runSolver(width_txt, height_txt, gen_txt, size_txt, paths):
         height_txt)), int(gen_txt), int(size_txt), paths, show_sols=False)
     solver.solvePuzzle_gui_mode()
 
+def runSolverJSON(path):
+    with open(path) as f:
+        puzzle_data = json.load(f)
+        print("running solver...")
+        #print([entry for entry in puzzle_data["file_info"]])
+        file_list = [('../' + entry["path"], entry["num_pieces"]) for entry in puzzle_data["file_info"]]
+        solver = PuzzleSolver(puzzle_data["puzzle_name"], tuple(puzzle_data["dims"]), puzzle_data["num_gens"],
+                puzzle_data["gen_size"], file_list,
+                color_spec = puzzle_data["color_spec"], show_sols=False)
+    solver.solvePuzzle_gui_mode()
 
 class Window:
     # Constructor sets all nessasary variables for creating a window
@@ -52,6 +63,8 @@ class Window:
         self.centerScreeny = height / 2
         self.resultImage = 'result.jpg'
         self.text_boxes = []
+
+        self.json_file = None
 
     # Create a window and set its needed settings
     def initWindow(self):
@@ -255,7 +268,7 @@ class Window:
             gen_txt = text_boxes[2].text
             size_txt = text_boxes[3].text
 
-            if width_txt == "" or height_txt == "":
+            if self.json_file is None and (width_txt == "" or height_txt == ""):
                 print("Width and height must be set befor running!")
                 return
             if gen_txt == "":
@@ -263,8 +276,12 @@ class Window:
             if size_txt == "":
                 size_txt = "100"
 
-            new_thread = Thread(target=runSolver, args=(
-                width_txt, height_txt, gen_txt, size_txt, self.paths))
+            if self.json_file is None:
+                new_thread = Thread(target=runSolver, args=(
+                    width_txt, height_txt, gen_txt, size_txt, self.paths))
+            else:
+                new_thread = Thread(target=runSolverJSON, args=(self.json_file,))
+
             new_thread.start()
 
         # # Create button object
@@ -284,11 +301,16 @@ class Window:
             if self.clicked and add_button.isInButton(self.last_click_x, self.last_click_y):
                 self.clicked = False
                 path = filedialog.askopenfilename(
-                    filetypes=[('jpg', '*.jpg'), ('png', '*.png')])
+                    filetypes=[('JSON', '*.JSON'), ('jpg', '*.jpg'), ('png', '*.png')])
+                if path.endswith('.JSON'):
+                    self.json_file = path
                 if path != '':
-                    pieces = self.popup_mode()
+                    if self.json_file is None: 
+                        pieces = self.popup_mode()
+                        self.paths.append((path, pieces))
+                    else:
+                        self.paths.append((path, 0))
                     self.curent_add_point = self.curent_add_point + 1
-                    self.paths.append((path, pieces))
 
         # Temp file box
         # file_null = fileBox.FileBox('NULL', 10, 100, 230, 30, f2)

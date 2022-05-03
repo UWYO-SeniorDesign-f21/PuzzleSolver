@@ -1,0 +1,1 @@
+{"puzzle_name": "bluesclues", "dims": [4, 6], "num_gens": 30, "gen_size": 30, "file_info": [{"path": "input/puzzle1_1.jpg", "num_pieces": 24}], "show_sols": false, "settings": [10, 50, 50, 20, 30, 64], "color_spec": "HSV", "sides_first": false}
