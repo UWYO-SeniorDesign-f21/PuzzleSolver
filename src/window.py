@@ -74,9 +74,9 @@ class Window:
                 testBorder.center = self.centerScreenx, self.centerScreeny
                 self.window.blit(testIMG, testBorder)
                 MPOS = pygame.mouse.get_pos()
-                
+
                 # Maybe an Implementation of Mouse Panning (Still in the works.)
-                if MPOS[0] >= (testBorder.x) and MPOS[0] <= (testBorder.x + self.x) and MPOS[1] >= (testBorder.y) and MPOS[1] <= (testBorder.y + self.y) and self.mouseOverButton == False :
+                if MPOS[0] >= (testBorder.x) and MPOS[0] <= (testBorder.x + self.x) and MPOS[1] >= (testBorder.y) and MPOS[1] <= (testBorder.y + self.y) and self.mouseOverButton == False:
                     MPOS = pygame.mouse.get_pos()
                     # print("Trying to Pan Image")
                     self.centerScreenx = MPOS[0]
@@ -208,6 +208,14 @@ class Window:
             height_txt = text_boxes[1].text
             gen_txt = text_boxes[2].text
             size_txt = text_boxes[3].text
+
+            if width_txt == "" or height_txt == "":
+                print("Width and height must be set befor running!")
+                return
+            if gen_txt == "":
+                gen_txt = "100"
+            if size_txt == "":
+                size_txt = "100"
 
             print("running solver...")
             solver = PuzzleSolver(".title", (int(width_txt), int(
@@ -349,7 +357,7 @@ class Window:
             self.centerScreeny = self.centerScreeny - 50
             print("Panning Up?")
 
-        self.window.blit(uaIcon, ((self.width/2)+ 100, -10))
+        self.window.blit(uaIcon, ((self.width/2) + 100, -10))
         # Implements Down Button
         daIcon = pygame.transform.rotate(aIcon, 270)
         goDown = button.Button(
@@ -365,7 +373,7 @@ class Window:
         self.window.blit(daIcon, ((self.width/2) + 100, (self.height-40)))
 
         #
-        # Creates button and overlays image for settings button 
+        # Creates button and overlays image for settings button
         #
 
         # Access settings.png from current directory
@@ -403,7 +411,7 @@ class Window:
                          255, 255), (255, 255, 255)), ((self.window.get_width()/3)*2, 93*2))
 
     def drawSettingsButton(self):
-        #Draws the settings button logo
+        # Draws the settings button logo
 
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
@@ -452,7 +460,7 @@ class Window:
         closeX = pygame.transform.scale(closeX, DEFAULT_IMAGE_SIZE)
 
         # If the settings window is open, draw the close button.
-        
+
         if self.settings:
 
             settingsClose = button.Button(
