@@ -1,5 +1,6 @@
 # Automated Puzzle Solver
 Some helpful how to on using the automated solver.
+Note: GUI is incomatible with MacOS. If running on MacOS, find instructions to run without GUI at the bottom.
 ## GUI Navigation
 You can move around the puzzle using the arrow keys, the on screen buttons, or dragging with the mouse. The image can be rotated with the rotation buttons. Zooming can be done with the zoom buttons or by using the scrollwheel on the mouses. The settings menu is found by clicking on the gear.
 ## Instructions 
@@ -41,3 +42,9 @@ You can move around the puzzle using the arrow keys, the on screen buttons, or d
     * For tart set dimension to 18 18
     * Generation defaults are Size 100, with 100 generations
 4. Click run 
+
+### Instructions to Run W/o GUI
+1. Open the file src/PuzzleSolver.py
+2. Uncomment the section in the main function for the puzzle you want to run.
+3. Make sure all other puzzles are commented out.
+4. From the main folder (not src), run src/puzzleSolver.py
