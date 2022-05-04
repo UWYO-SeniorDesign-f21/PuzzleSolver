@@ -37,7 +37,7 @@ def runSolverJSON(path):
         file_list = [('../' + entry["path"], entry["num_pieces"])
                      for entry in puzzle_data["file_info"]]
         solver = PuzzleSolver(puzzle_data["puzzle_name"], tuple(puzzle_data["dims"]), puzzle_data["num_gens"],
-                              puzzle_data["gen_size"], file_list,
+                              puzzle_data["gen_size"], file_list, settings=puzzle_data["settings"],
                               color_spec=puzzle_data["color_spec"], show_sols=False)
     solver.solvePuzzle_gui_mode()
 
