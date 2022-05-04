@@ -28,16 +28,19 @@ def runSolver(width_txt, height_txt, gen_txt, size_txt, paths):
         height_txt)), int(gen_txt), int(size_txt), paths, show_sols=False)
     solver.solvePuzzle_gui_mode()
 
+
 def runSolverJSON(path):
     with open(path) as f:
         puzzle_data = json.load(f)
         print("running solver...")
         #print([entry for entry in puzzle_data["file_info"]])
-        file_list = [('../' + entry["path"], entry["num_pieces"]) for entry in puzzle_data["file_info"]]
+        file_list = [('../' + entry["path"], entry["num_pieces"])
+                     for entry in puzzle_data["file_info"]]
         solver = PuzzleSolver(puzzle_data["puzzle_name"], tuple(puzzle_data["dims"]), puzzle_data["num_gens"],
-                puzzle_data["gen_size"], file_list,
-                color_spec = puzzle_data["color_spec"], show_sols=False)
+                              puzzle_data["gen_size"], file_list,
+                              color_spec=puzzle_data["color_spec"], show_sols=False)
     solver.solvePuzzle_gui_mode()
+
 
 class Window:
     # Constructor sets all nessasary variables for creating a window
@@ -107,7 +110,8 @@ class Window:
                     testIMG = pygame.image.load(self.resultImage)
                     testIMG.convert()
                     testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
-                    testIMG = pygame.transform.rotate(testIMG, self.orientation)
+                    testIMG = pygame.transform.rotate(
+                        testIMG, self.orientation)
                     testBorder = testIMG.get_rect()
                     testBorder.center = self.centerScreenx, self.centerScreeny
                     self.window.blit(testIMG, testBorder)
@@ -154,8 +158,6 @@ class Window:
 
                 self.drag_click = True
                 self.drag_click_pos = MPOS
-
-
 
     def prender(self):
         bg_gray = (74, 74, 74)
@@ -283,7 +285,8 @@ class Window:
                 new_thread = Thread(target=runSolver, args=(
                     width_txt, height_txt, gen_txt, size_txt, self.paths))
             else:
-                new_thread = Thread(target=runSolverJSON, args=(self.json_file,))
+                new_thread = Thread(target=runSolverJSON,
+                                    args=(self.json_file,))
 
             new_thread.start()
 
@@ -304,11 +307,11 @@ class Window:
             if self.clicked and add_button.isInButton(self.last_click_x, self.last_click_y):
                 self.clicked = False
                 path = filedialog.askopenfilename(
-                    filetypes=[('JSON', '*.JSON'), ('jpg', '*.jpg'), ('png', '*.png')])
+                    filetypes=[('jpg', '*.jpg'), ('JSON', '*.JSON'),  ('png', '*.png')])
                 if path.endswith('.JSON'):
                     self.json_file = path
                 if path != '':
-                    if self.json_file is None: 
+                    if self.json_file is None:
                         pieces = self.popup_mode()
                         self.paths.append((path, pieces))
                     else:
@@ -359,7 +362,7 @@ class Window:
 
         testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
         testIMG = pygame.transform.rotate(testIMG, self.orientation)
-        
+
         testBorder = testIMG.get_rect()
         testBorder.center = self.centerScreenx, self.centerScreeny
         self.window.blit(testIMG, testBorder)
@@ -415,8 +418,8 @@ class Window:
         if (self.clicked and zoomPlus.isInButton(self.last_click_x, self.last_click_y)) or self.zoom_in:
             self.zoom_in = False
             self.clicked = False
-            self.x = int(self.x * 1.2) # + self.x_step
-            self.y = int(self.y * 1.2) # + self.y_step
+            self.x = int(self.x * 1.2)  # + self.x_step
+            self.y = int(self.y * 1.2)  # + self.y_step
 
         # Implementation for Zoom Out Button
         zoomMinus = button.Button(
@@ -430,9 +433,9 @@ class Window:
                 # print("Cannot zoom out further")
                 # self.x = 60
                 # self.y = 60
-            # else:
-                self.x = int(self.x * 0.8) # - self.x_step
-                self.y = int(self.y * 0.8) # - self.y_step
+                # else:
+                self.x = int(self.x * 0.8)  # - self.x_step
+                self.y = int(self.y * 0.8)  # - self.y_step
 
         # Right Button Implementation
         goRight = button.Button(
@@ -454,7 +457,7 @@ class Window:
             '', (self.width/4), (self.height/2)-75, 35, 100,
             std_font, off_white, button_selected, button_unselected)
         goLeft.draw(self.window)
-        if (self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y))  or self.key_pressed == pygame.K_LEFT:
+        if (self.clicked and goLeft.isInButton(self.last_click_x, self.last_click_y)) or self.key_pressed == pygame.K_LEFT:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreenx = self.centerScreenx - 50
@@ -469,7 +472,7 @@ class Window:
             '', (self.width/2)+75, 0, 100, 35,
             std_font, off_white, button_selected, button_unselected)
         goUp.draw(self.window)
-        if (self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y))  or self.key_pressed == pygame.K_UP:
+        if (self.clicked and goUp.isInButton(self.last_click_x, self.last_click_y)) or self.key_pressed == pygame.K_UP:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny - 50
@@ -482,7 +485,7 @@ class Window:
             '', ((self.width/2)+75), (self.height-35), 100, 35,
             std_font, off_white, button_selected, button_unselected)
         goDown.draw(self.window)
-        if (self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y))  or self.key_pressed == pygame.K_DOWN:
+        if (self.clicked and goDown.isInButton(self.last_click_x, self.last_click_y)) or self.key_pressed == pygame.K_DOWN:
             self.mouseOverButton = True
             self.clicked = False
             self.centerScreeny = self.centerScreeny + 50
@@ -607,7 +610,7 @@ class Window:
 
     def updateImage(self):
         import shutil
-        shutil.copy("result2.jpg","result.jpg")
+        shutil.copy("result2.jpg", "result.jpg")
         time.sleep(0.1)
         testIMG = pygame.image.load(self.resultImage)
         testIMG.convert()
@@ -672,7 +675,7 @@ class Window:
             now = time.time_ns()
             delta = delta + ((now - last) / timePerFrame)
             last = now
-            
+
             try:
                 result_updated = os.stat("result2.jpg").st_mtime
                 if result_updated > prev_result_updated:
