@@ -3,6 +3,11 @@ Some helpful how to on using the automated solver.
 Note: GUI is incomatible with MacOS. If running on MacOS, find instructions to run without GUI at the bottom.
 ## GUI Navigation
 You can move around the puzzle using the arrow keys, the on screen buttons, or dragging with the mouse. The image can be rotated with the rotation buttons. Zooming can be done with the zoom buttons or by using the scrollwheel on the mouses. The settings menu is found by clicking on the gear.
+
+## Install dependencies 
+Using python 3 as python 
+* `python -m pip install numpy scipy imutils matplotlib opencv-contrib-python pygame compressed_dictionary Pillow`
+
 ## Instructions 
 1. To start the solver GUI
     * `cd src`
