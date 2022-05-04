@@ -1,5 +1,7 @@
 # Automated Puzzle Solver
 Some helpful how to on using the automated solver.
+## GUI Navigation
+You can move around the puzzle using the arrow keys, the on screen buttons, or dragging with the mouse. The image can be rotated with the rotation buttons. Zooming can be done with the zoom buttons or by using the scrollwheel on the mouses. The settings menu is found by clicking on the gear.
 ## Instructions 
 1. To start the solver GUI
     * `cd src`
