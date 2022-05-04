@@ -1,5 +1,6 @@
 from turtle import right
 from numpy import true_divide
+from PIL import Image
 import pygame
 import fileBox
 import os
@@ -57,6 +58,7 @@ class Window:
         self.zoom_out = False
         self.x = 640
         self.y = 480
+        self.orientation = 0
         self.x_step = self.x // 10
         self.y_step = self.y // 10
         self.centerScreenx = (width / 2) + 150
@@ -105,6 +107,7 @@ class Window:
                     testIMG = pygame.image.load(self.resultImage)
                     testIMG.convert()
                     testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
+                    testIMG = pygame.transform.rotate(testIMG, self.orientation)
                     testBorder = testIMG.get_rect()
                     testBorder.center = self.centerScreenx, self.centerScreeny
                     self.window.blit(testIMG, testBorder)
@@ -355,6 +358,8 @@ class Window:
             self.y_step = self.y // 10
 
         testIMG = pygame.transform.scale(testIMG, (self.x, self.y))
+        testIMG = pygame.transform.rotate(testIMG, self.orientation)
+        
         testBorder = testIMG.get_rect()
         testBorder.center = self.centerScreenx, self.centerScreeny
         self.window.blit(testIMG, testBorder)
@@ -363,13 +368,45 @@ class Window:
         # Definitions for Colors and Fonts of Various Buttons. Same as UploadRegion for consistency
         ARR_FOLDER = os.path.dirname(os.path.abspath(__file__))
         rightA = os.path.join(ARR_FOLDER, 'arrowRight.png')
+        rotateA = os.path.join(ARR_FOLDER, 'curveArrow.png')
         arrow = pygame.image.load(rightA)
+        curveA = pygame.image.load(rotateA)
         aIcon = pygame.transform.scale(arrow, (50, 50))
+        rIcon = pygame.transform.scale(curveA, (50, 35))
         std_font = pygame.font.Font(pygame.font.get_default_font(), 48)
         off_white = (230, 230, 230)
         button_selected = (80, 80, 80)
         button_unselected = (50, 50, 50)
 
+        # Implementation of Rotate left Button
+        leftRIcon = pygame.transform.flip(rIcon, 180, 0)
+        rotateLeft = button.Button(
+            '', (self.width/2) + 25, (self.height) - 35, 50, 35,
+            std_font, off_white, button_selected, button_unselected)
+        rotateLeft.draw(self.window)
+        if (self.clicked and rotateLeft.isInButton(self.last_click_x, self.last_click_y)):
+            self.clicked = False
+            if(self.orientation == 360):
+                self.orientation = 90
+            else:
+                self.orientation = self.orientation + 90
+            # print("Rotate maybe")
+
+        self.window.blit(leftRIcon, ((self.width/2) + 25, (self.height)-35))
+        # Implementation of Rotate right button
+        rotateRight = button.Button(
+            '', (self.width/2) + 175, (self.height) - 35, 50, 35,
+            std_font, off_white, button_selected, button_unselected)
+        rotateRight.draw(self.window)
+        if (self.clicked and rotateRight.isInButton(self.last_click_x, self.last_click_y)):
+            self.clicked = False
+            if(self.orientation == 0):
+                self.orientation = 270
+            else:
+                self.orientation = self.orientation - 90
+            # print("Rotate maybe")
+
+        self.window.blit(rIcon, ((self.width/2) + 175, (self.height) - 35))
         # Implementation of Zoom In Button
         zoomPlus = button.Button(
             '+', 250, 550, 50, 50,
